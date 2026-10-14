@@ -54,8 +54,24 @@ nix flake update sheafdb-tools
 go run github.com/wxio/sheafdb-tools/cmd/md-table-fmt@latest -n .
 ```
 
-This needs `GOPRIVATE=github.com/wxio/*` and an ssh key that can read the
-repository. The flake is the supported path; this is the fallback.
+The repository is private, so two settings have to be right first.
+
+```sh
+# 1. Do not go through the module proxy and the checksum database.
+#    Neither can read a private repository.
+go env -w GOPRIVATE='github.com/wxio/*'
+
+# 2. Fetch over ssh rather than https. The go command clones with
+#    https, which asks for a password that an ssh key cannot answer.
+git config --global url."git@github.com:wxio".insteadOf "https://github.com/wxio"
+```
+
+`insteadOf` rewrites the url inside git, so the go command keeps asking
+for `https://github.com/wxio/...` and git clones `git@github.com:wxio/...`
+instead. It is a global setting and it covers every wxio repository, not
+only this one.
+
+The flake is the supported path. This is the fallback.
 
 ## Develop
 
@@ -67,6 +83,50 @@ prek install            # the git hooks, once per clone and per worktree
 
 Read [AGENTS.md](AGENTS.md) first. It holds the Go style, the Markdown
 style and the rule that keeps this repository separable from sheafdb.
+
+### Work on a consumer and on the tools together
+
+A change here reaches a consumer through a commit, a push and a new pin.
+That is three steps too many while you are still finding the shape of a
+fix. Point the consumer at your checkout instead:
+
+```
+// in the consumer's own go.work
+use (
+	./cli/sheafdb_bff
+	./samples/goohm
+	../tools          // this repository
+)
+```
+
+The consumer's `go run github.com/wxio/sheafdb-tools/cmd/<name>` then
+builds your working tree, with no network and no proxy. Commit, push and
+`nix flake update sheafdb-tools` once the fix is right, then take the
+line out again.
+
+**`use`, not `replace`.** A `replace` line on its own fails with
+"replaced but not required", because nothing in the consumer imports
+this module: the tools arrive as binaries, not as a library. `use` puts
+the module in the workspace, which is enough for `go run` to find the
+command by its import path.
+
+Three more things to know.
+
+- **`go.work` files do not nest.** The go command takes the nearest one
+  above the working directory and stops. So the line goes in the
+  consumer's existing `go.work`, and an umbrella repository cannot hold
+  one for every project under it.
+- **The path is only a path.** `../tools` is what the sheafdb workspace
+  makes it. Any checkout anywhere works, so this is a general option and
+  not a feature of that layout.
+- **It does not change the hooks.** A prek hook and the Claude Code
+  `Stop` hook call the binary the flake built, which is still the pinned
+  commit. Call `go run` by hand to exercise your checkout.
+
+`go.work` is committed in some repositories, sheafdb among them. A
+committed `use ../tools` breaks every clone that has no sibling
+checkout, so leave the line commented out there, or keep a workspace
+file of your own and name it with `GOWORK=/path/to/dev.work`.
 
 ## Why it is its own repository
 
