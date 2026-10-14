@@ -1,0 +1,47 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace" },
+  { id = "mixed-line-ending" },
+  { id = "check-yaml" },
+  { id = "check-toml" },
+  { id = "end-of-file-fixer" },
+  { id = "check-symlinks" },
+  { id = "check-merge-conflict" },
+  { id = "detect-private-key" },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "md-table-fmt",
+    name = "the Markdown tables are aligned",
+    description = "Pad every table cell to the width of its column, so a page reads in the raw file and not only in a viewer; the AGENTS.md section 'Markdown style' is the rule. The hook rewrites the file and fails, so stage it and commit again. A cell holding an escaped pipe is refused rather than fixed.",
+    entry = "go run ./cmd/md-table-fmt",
+    language = "system",
+    files = "\\.md$",
+    pass_filenames = true
+  },
+  {
+    id = "go-test",
+    name = "go test passes",
+    description = "Run the module's tests. The tools are the hooks other repositories depend on, so a break here breaks their commits.",
+    entry = "go test ./...",
+    language = "system",
+    files = "\\.go$",
+    pass_filenames = false
+  },
+  {
+    id = "go-vet",
+    name = "go vet is clean",
+    entry = "go vet ./...",
+    language = "system",
+    files = "\\.go$",
+    pass_filenames = false
+  }
+]

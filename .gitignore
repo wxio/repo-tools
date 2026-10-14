@@ -1,0 +1,12 @@
+/.direnv
+.DS_Store
+*.code-workspace
+
+# built by `go build ./cmd/...`
+/md-table-fmt
+/prompt-history-guard
+/prompt-history-meta
+/prompt-history-record
+
+# nix build output
+/result
