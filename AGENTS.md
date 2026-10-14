@@ -44,7 +44,7 @@ load.
 - When the work grows past what was asked, stop and name it.
 - Avoid an open question. Propose a default and ask for confirmation.
 - Say the size before you start: minutes, or an afternoon.
-- End every turn with one line that starts "Next:".
+- End every turn with one line that starts "YYYYMMDD - HH:MM **Next**:".
 
 ## Development environment
 
