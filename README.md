@@ -88,45 +88,53 @@ style and the rule that keeps this repository separable from sheafdb.
 
 A change here reaches a consumer through a commit, a push and a new pin.
 That is three steps too many while you are still finding the shape of a
-fix. Point the consumer at your checkout instead:
+fix. Point the consumer's flake input at your checkout instead:
 
-```
-// in the consumer's own go.work
-use (
-	./cli/sheafdb_bff
-	./samples/goohm
-	../tools          // this repository
-)
+```sh
+# in the consumer
+nix develop --override-input sheafdb-tools "path:/abs/path/to/sheafdb-tools"
 ```
 
-The consumer's `go run github.com/wxio/sheafdb-tools/cmd/<name>` then
-builds your working tree, with no network and no proxy. Commit, push and
-`nix flake update sheafdb-tools` once the fix is right, then take the
-line out again.
+The consumer's dev shell then builds the four commands from your working
+tree, uncommitted edits included. Commit, push and
+`nix flake update sheafdb-tools` once the fix is right.
 
-**`use`, not `replace`.** A `replace` line on its own fails with
+**It reaches the hooks.** A prek hook and the Claude Code `Stop` hook
+each name a bare command, which resolves through `PATH`, and the dev
+shell sets `PATH`. So both run your build with no further wiring. That
+is the point of the override: `go run` by hand exercises your checkout,
+but only the override exercises what the consumer's hooks will run.
+
+**It changes no tracked file.** `--override-input` is a flag. The
+consumer's `flake.lock` keeps the pinned `rev` and `narHash`, so
+`git status` reads the same in both modes, and there is no line to take
+out afterwards.
+
+**It is a nix build, not `go build`.** Every switch and every reload
+runs `buildGo127Module` in a sandbox: tens of seconds, and nothing
+watches the Go sources. Use `go run ./cmd/<name>` here for the fast
+inner loop, and the override to check the thing the hooks will run.
+
+A consumer can wire the flag to an environment variable, so the switch
+is one file that `.gitignore` holds. `sheafdb` does, in `.envrc` and
+`.envrc.local.example`; its `docs/devtools/nix-custom-dev-tools.md`
+section 8 is the page.
+
+#### The `go.work` route, and why it is not the one
+
+`use ../tools` in the consumer's `go.work` also builds your checkout,
+for a consumer that calls
+`go run github.com/wxio/sheafdb-tools/cmd/<name>` rather than the
+command by name.
+
+It is `use` and not `replace`. A `replace` line on its own fails with
 "replaced but not required", because nothing in the consumer imports
-this module: the tools arrive as binaries, not as a library. `use` puts
-the module in the workspace, which is enough for `go run` to find the
-command by its import path.
+this module: the tools arrive as binaries, not as a library.
 
-Three more things to know.
-
-- **`go.work` files do not nest.** The go command takes the nearest one
-  above the working directory and stops. So the line goes in the
-  consumer's existing `go.work`, and an umbrella repository cannot hold
-  one for every project under it.
-- **The path is only a path.** `../tools` is what the sheafdb workspace
-  makes it. Any checkout anywhere works, so this is a general option and
-  not a feature of that layout.
-- **It does not change the hooks.** A prek hook and the Claude Code
-  `Stop` hook call the binary the flake built, which is still the pinned
-  commit. Call `go run` by hand to exercise your checkout.
-
-`go.work` is committed in some repositories, sheafdb among them. A
-committed `use ../tools` breaks every clone that has no sibling
-checkout, so leave the line commented out there, or keep a workspace
-file of your own and name it with `GOWORK=/path/to/dev.work`.
+Two things make it the worse option. `go.work` is committed in some
+repositories, sheafdb among them, so the line dirties the worktree and
+breaks every clone that has no sibling checkout. And it does not reach
+the hooks, which name the command and get the pinned binary.
 
 ## Why it is its own repository
 
