@@ -1,7 +1,7 @@
 // Package prompthistory writes a prompt-history entry for every turn of a Claude
 // Code session, and one for every subagent the session delegated to.
 //
-// It is the library behind two subcommands of sheafdb-tools.
+// It is the library behind two subcommands of repo-tools.
 // prompt-history-record is the Stop hook: it reads the hook JSON on stdin and
 // calls [Record]. prompt-history-meta rebuilds the index and calls [Rebuild]. A
 // third subcommand, prompt-history-guard, is the prek hook that keeps the

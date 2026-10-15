@@ -8,7 +8,7 @@
 /prompt-history-meta
 /prompt-history-record
 
-/sheafdb-tools
+/repo-tools
 
 # nix build output
 /result

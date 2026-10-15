@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/wxio/sheafdb-tools/internal/prompthistory"
+	"github.com/wxio/repo-tools/internal/prompthistory"
 )
 
 // promptHistoryRecord is the command line of prompt-history-record.

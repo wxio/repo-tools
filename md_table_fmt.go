@@ -3,8 +3,8 @@ package main
 // md_table_fmt.go is the md-table-fmt subcommand. It aligns the tables in
 // Markdown files.
 //
-//	sheafdb-tools md-table-fmt docs/architecture/lowering.md
-//	sheafdb-tools md-table-fmt -n $(git ls-files '*.md')
+//	repo-tools md-table-fmt docs/architecture/lowering.md
+//	repo-tools md-table-fmt -n $(git ls-files '*.md')
 //
 // It is the "Markdown style" rule of this repo's AGENTS.md, made a program:
 // every cell is padded to the width of the widest cell in its column, and
@@ -40,7 +40,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/wxio/sheafdb-tools/internal/mdtable"
+	"github.com/wxio/repo-tools/internal/mdtable"
 )
 
 const (

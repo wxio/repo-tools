@@ -1,4 +1,4 @@
-module github.com/wxio/sheafdb-tools
+module github.com/wxio/repo-tools
 
 go 1.27.1
 

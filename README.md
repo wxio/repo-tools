@@ -1,8 +1,8 @@
-# sheafdb-tools
+# repo-tools
 
 The small programs the sheafdb repositories run on themselves: a Markdown
 table formatter and a prompt-history recorder for Claude Code. One
-binary, `sheafdb-tools`, with four subcommands. Two libraries. One
+binary, `repo-tools`, with four subcommands. Two libraries. One
 dependency outside the Go standard library: `github.com/jpillora/opts`,
 which parses the command line.
 
@@ -17,23 +17,23 @@ get the same hooks.
 | `prompt-history-meta`   | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
 | `prompt-history-guard`  | the prek hook: keeps `.prompt-history/` in commits of its own       |
 
-Run one as `sheafdb-tools <subcommand>`. Each one has a page in
+Run one as `repo-tools <subcommand>`. Each one has a page in
 [docs/](docs/).
 
 ## Install into a repository
 
 Take the flake as an input, so `flake.lock` pins the commit and
-`sheafdb-tools` is on `PATH` by name.
+`repo-tools` is on `PATH` by name.
 
 ```nix
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-  inputs.sheafdb-tools.url = "git+ssh://git@github.com/wxio/sheafdb-tools";
-  inputs.sheafdb-tools.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.repo-tools.url = "git+ssh://git@github.com/wxio/repo-tools";
+  inputs.repo-tools.inputs.nixpkgs.follows = "nixpkgs";
 
-  outputs = { self, nixpkgs, sheafdb-tools }: {
+  outputs = { self, nixpkgs, repo-tools }: {
     # ... in the devShell's packages list:
-    #   sheafdb-tools.packages.${system}.default
+    #   repo-tools.packages.${system}.default
   };
 }
 ```
@@ -48,13 +48,13 @@ section 3 has the `.claude/settings.json` and `prek.toml` blocks, and
 Bump the pin with:
 
 ```sh
-nix flake update sheafdb-tools
+nix flake update repo-tools
 ```
 
 ### Without nix
 
 ```sh
-go run github.com/wxio/sheafdb-tools@latest md-table-fmt -n README.md
+go run github.com/wxio/repo-tools@latest md-table-fmt -n README.md
 ```
 
 The repository is private, so two settings have to be right first.
@@ -95,15 +95,15 @@ fix. Point the consumer's flake input at your checkout instead:
 
 ```sh
 # in the consumer
-nix develop --override-input sheafdb-tools "path:/abs/path/to/sheafdb-tools"
+nix develop --override-input repo-tools "path:/abs/path/to/repo-tools"
 ```
 
-The consumer's dev shell then builds `sheafdb-tools` from your working
+The consumer's dev shell then builds `repo-tools` from your working
 tree, uncommitted edits included. Commit, push and
-`nix flake update sheafdb-tools` once the fix is right.
+`nix flake update repo-tools` once the fix is right.
 
 **It reaches the hooks.** A prek hook and the Claude Code `Stop` hook
-each name `sheafdb-tools`, which resolves through `PATH`, and the dev
+each name `repo-tools`, which resolves through `PATH`, and the dev
 shell sets `PATH`. So both run your build with no further wiring. That
 is the point of the override: `go run` by hand exercises your checkout,
 but only the override exercises what the consumer's hooks will run.
@@ -127,7 +127,7 @@ section 8 is the page.
 
 `use ../tools` in the consumer's `go.work` also builds your checkout,
 for a consumer that calls
-`go run github.com/wxio/sheafdb-tools <subcommand>` rather than the
+`go run github.com/wxio/repo-tools <subcommand>` rather than the
 command by name.
 
 It is `use` and not `replace`. A `replace` line on its own fails with
@@ -149,4 +149,4 @@ path above it.
 
 The cost is a pin. `sheafdb` now records a commit of this repository in
 its `flake.lock`, and a change here reaches `sheafdb` when someone runs
-`nix flake update sheafdb-tools` there.
+`nix flake update repo-tools` there.

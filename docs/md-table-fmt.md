@@ -4,15 +4,15 @@ Aligns the tables in a Markdown file, so a page reads in the raw file and
 not only in a viewer.
 
 ```sh
-sheafdb-tools md-table-fmt docs/architecture/lowering.md
-sheafdb-tools md-table-fmt -n $(git ls-files '*.md')     # report only
-sheafdb-tools md-table-fmt -q AGENTS.md                  # refusals only
+repo-tools md-table-fmt docs/architecture/lowering.md
+repo-tools md-table-fmt -n $(git ls-files '*.md')     # report only
+repo-tools md-table-fmt -q AGENTS.md                  # refusals only
 prek run md-table-fmt --all-files
 ```
 
 In this repository, where the command is the source, run it with `go
 run . md-table-fmt` instead. In a repository that takes the flake,
-`sheafdb-tools` is on `PATH` by name.
+`repo-tools` is on `PATH` by name.
 
 | flag      | what it does                                                   |
 |-----------|----------------------------------------------------------------|
@@ -97,6 +97,6 @@ goes on.
 
 **2026-10-14.** Moved out of `sheafdb/tools/` into this repository. The
 import path changed from `tools/internal/mdtable` to
-`github.com/wxio/sheafdb-tools/internal/mdtable`. Nothing else in the
+`github.com/wxio/repo-tools/internal/mdtable`. Nothing else in the
 program changed: it reads the files it is given and names no path above
 them, which is what made the move cheap.

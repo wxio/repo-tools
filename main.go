@@ -1,12 +1,12 @@
-// Command sheafdb-tools holds the small programs the sheafdb repositories run
+// Command repo-tools holds the small programs the sheafdb repositories run
 // on themselves. Each program is a subcommand:
 //
-//	sheafdb-tools md-table-fmt -n $(git ls-files '*.md')
-//	sheafdb-tools prompt-history-record < hook.json
-//	sheafdb-tools prompt-history-meta -root /path/to/repo
-//	sheafdb-tools prompt-history-guard
+//	repo-tools md-table-fmt -n $(git ls-files '*.md')
+//	repo-tools prompt-history-record < hook.json
+//	repo-tools prompt-history-meta -root /path/to/repo
+//	repo-tools prompt-history-guard
 //
-// `sheafdb-tools <subcommand> --help` lists the flags of one subcommand. A
+// `repo-tools <subcommand> --help` lists the flags of one subcommand. A
 // flag takes one dash or two: `-n` and `--n` are the same flag.
 package main
 
@@ -38,7 +38,7 @@ func main() {
 		err  error
 	)
 	cli = opts.New(&root{}).
-		Name("sheafdb-tools").
+		Name("repo-tools").
 		Summary("The small programs the sheafdb repositories run on themselves.").
 		AddCommand(opts.New(&mdTableFmt{
 			Wide: 70,
@@ -69,6 +69,6 @@ func main() {
 	if errors.As(err, &code) {
 		os.Exit(int(code))
 	}
-	fmt.Fprintf(os.Stderr, "sheafdb-tools: %v\n", err)
+	fmt.Fprintf(os.Stderr, "repo-tools: %v\n", err)
 	os.Exit(1)
 }

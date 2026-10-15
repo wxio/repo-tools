@@ -4,14 +4,14 @@ Writes one Markdown entry per turn of a Claude Code session, and one per
 subagent, into the repository the turn worked in.
 
 ```sh
-sheafdb-tools prompt-history-meta                          # rebuild the index
-sheafdb-tools prompt-history-meta -root /path/to/repo      # ... for another repository
-sheafdb-tools prompt-history-record -all < hook.json       # backfill a missed session
-sheafdb-tools prompt-history-record -meta=false < hook.json  # an entry, and no CSV row
+repo-tools prompt-history-meta                          # rebuild the index
+repo-tools prompt-history-meta -root /path/to/repo      # ... for another repository
+repo-tools prompt-history-record -all < hook.json       # backfill a missed session
+repo-tools prompt-history-record -meta=false < hook.json  # an entry, and no CSV row
 prek run prompt-history-guard --all-files
 ```
 
-Three subcommands of `sheafdb-tools`, and one library:
+Three subcommands of `repo-tools`, and one library:
 
 | program                  | what it does                                                        |
 |--------------------------|---------------------------------------------------------------------|
@@ -65,7 +65,7 @@ hook in `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "sheafdb-tools prompt-history-record",
+            "command": "repo-tools prompt-history-record",
             "timeout": 30,
             "statusMessage": "Recording prompt history"
           }
@@ -82,7 +82,7 @@ And the guard in `prek.toml`:
 {
   id = "prompt-history-guard",
   name = ".prompt-history is committed on its own",
-  entry = "sheafdb-tools prompt-history-guard",
+  entry = "repo-tools prompt-history-guard",
   language = "system",
   pass_filenames = false,
   always_run = true
@@ -134,13 +134,13 @@ git add .prompt-history && git commit -m "the transcripts"
 
 **2026-10-14.** Moved out of `sheafdb/tools/` into this repository. The
 import path changed from `tools/internal/prompthistory` to
-`github.com/wxio/sheafdb-tools/internal/prompthistory`. The repository
+`github.com/wxio/repo-tools/internal/prompthistory`. The repository
 resolution in `api.go` and `transcript.go` already read `git rev-parse`,
 `CLAUDE_PROJECT_DIR` and the working directory in that order, so the
 commands needed no change to work from outside the repository they
 record. That was the test of whether the split was possible.
 
 **2026-10-15.** The four commands became subcommands of one binary,
-`sheafdb-tools`, on `github.com/jpillora/opts`. A hook now names
-`sheafdb-tools prompt-history-record`, not `prompt-history-record`. The
+`repo-tools`, on `github.com/jpillora/opts`. A hook now names
+`repo-tools prompt-history-record`, not `prompt-history-record`. The
 record hook got `-meta`, on by default, to turn the CSV row off.

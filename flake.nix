@@ -1,5 +1,5 @@
 {
-  description = "sheafdb-tools, the small programs the sheafdb repositories run on themselves";
+  description = "repo-tools, the small programs the sheafdb repositories run on themselves";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
@@ -11,7 +11,7 @@
       systems = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
 
-      # One derivation, one binary: sheafdb-tools, with the four tools
+      # One derivation, one binary: repo-tools, with the four tools
       # as subcommands. The module depends on github.com/jpillora/opts,
       # so vendorHash pins the hash of the vendored modules. Change
       # go.mod and this hash changes too: set it to lib.fakeHash, run
@@ -19,7 +19,7 @@
       # go.mod asks for 1.27.1, and the default buildGoModule is a major
       # behind. buildGo127Module is the same builder with go_1_27 bound.
       mkTools = pkgs: pkgs.buildGo127Module {
-        pname = "sheafdb-tools";
+        pname = "repo-tools";
         version = "0.1.0";
         src = ./.;
         vendorHash = "sha256-geV4Z117Ez1L46vM6dKKEnO13fxqi4aNdnrFo5v9kg8=";
@@ -28,24 +28,24 @@
 
         meta = {
           description = "Markdown table formatter and prompt-history recorder for sheafdb";
-          homepage = "https://github.com/wxio/sheafdb-tools";
+          homepage = "https://github.com/wxio/repo-tools";
         };
       };
     in
     {
       # What a consuming repository takes. Put this derivation in its dev
-      # shell and sheafdb-tools is on PATH by name, so a prek hook and a
+      # shell and repo-tools is on PATH by name, so a prek hook and a
       # Claude Code hook each name a command rather than a path.
       packages = forAllSystems (pkgs: rec {
-        sheafdb-tools = mkTools pkgs;
-        default = sheafdb-tools;
+        repo-tools = mkTools pkgs;
+        default = repo-tools;
       });
 
       # For working on the tools themselves. It does not hold the built
       # binary: `go run . <subcommand>` is the loop here.
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
-          name = "sheafdb-tools";
+          name = "repo-tools";
 
           packages = with pkgs; [
             go_1_27
@@ -57,7 +57,7 @@
           ];
 
           shellHook = ''
-            echo "sheafdb-tools"
+            echo "repo-tools"
             echo
             echo "  go test ./... && go vet ./...     the tests"
             echo "  go run . md-table-fmt -n *.md     align, report only"

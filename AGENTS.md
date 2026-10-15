@@ -1,7 +1,7 @@
-# sheafdb-tools
+# repo-tools
 
 The small programs the sheafdb repositories run on themselves. One
-binary, `sheafdb-tools`, with four subcommands. Two libraries. One
+binary, `repo-tools`, with four subcommands. Two libraries. One
 dependency outside the Go standard library: `github.com/jpillora/opts`,
 which parses the command line. Add no other.
 
@@ -44,6 +44,9 @@ load.
 - Work in chunks. After each chunk, write one line: what changed, what is
   next.
 - When the work grows past what was asked, stop and name it.
+- Do not stage or commit until told to. Leave the change in the working
+  tree and report that it is ready. "Commit" in the request is the
+  signal; "done", "ship" or "looks good" is not.
 - Avoid an open question. Propose a default and ask for confirmation.
 - Say the size before you start: minutes, or an afternoon.
 - End every turn with one line that starts "YYYYMMDD - HH:MM **Next**:".
@@ -103,7 +106,7 @@ go run . md-table-fmt -n $(git ls-files '*.md')   # report only
 ```
 
 This repository is the source of that program, so it runs it with `go
-run .`. A repository that takes the flake runs `sheafdb-tools
+run .`. A repository that takes the flake runs `repo-tools
 md-table-fmt`.
 
 This applies to every `.md` here, this file included.
@@ -112,7 +115,7 @@ This applies to every `.md` here, this file included.
 
 | path                       | what it is                                                    |
 |----------------------------|---------------------------------------------------------------|
-| `main.go`                  | `sheafdb-tools`: the opts command line and the exit codes     |
+| `main.go`                  | `repo-tools`: the opts command line and the exit codes     |
 | `md_table_fmt.go`          | `md-table-fmt`: aligns the tables of a `.md` file             |
 | `prompt_history_record.go` | `prompt-history-record`: the Claude Code `Stop` hook          |
 | `prompt_history_meta.go`   | `prompt-history-meta`: rebuilds the prompt-history index      |
@@ -128,10 +131,15 @@ go test ./... && go vet ./...
 go run . md-table-fmt -n $(git ls-files '*.md')
 go run . prompt-history-meta -root /path/to/repo
 
-nix build .#sheafdb-tools     # the binary, as a consumer gets it
+nix build .#repo-tools     # the binary, as a consumer gets it
 prek install                  # the git hooks, once per clone and worktree
 prek run --all-files
 ```
+
+**Do not run `git add` or `git commit` until told "commit".** Edit, test
+and report. On "commit", stage only the files changed for the task, then
+commit. One request is one commit; the next commit needs the next
+request.
 
 ## The rule that keeps this repository separable
 

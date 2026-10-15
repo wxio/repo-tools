@@ -15,7 +15,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/wxio/sheafdb-tools/internal/prompthistory"
+	"github.com/wxio/repo-tools/internal/prompthistory"
 )
 
 // promptHistoryMeta is the command line of prompt-history-meta.
