@@ -11,23 +11,20 @@
       systems = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
 
-      # One derivation for all four commands. The module depends on
-      # nothing outside the standard library, so vendorHash is null and
-      # there is no vendor directory to keep current.
+      # One derivation, one binary: sheafdb-tools, with the four tools
+      # as subcommands. The module depends on github.com/jpillora/opts,
+      # so vendorHash pins the hash of the vendored modules. Change
+      # go.mod and this hash changes too: set it to lib.fakeHash, run
+      # `nix build`, and copy the hash from the error.
       # go.mod asks for 1.27.1, and the default buildGoModule is a major
       # behind. buildGo127Module is the same builder with go_1_27 bound.
       mkTools = pkgs: pkgs.buildGo127Module {
         pname = "sheafdb-tools";
         version = "0.1.0";
         src = ./.;
-        vendorHash = null;
+        vendorHash = "sha256-geV4Z117Ez1L46vM6dKKEnO13fxqi4aNdnrFo5v9kg8=";
 
-        subPackages = [
-          "cmd/md-table-fmt"
-          "cmd/prompt-history-guard"
-          "cmd/prompt-history-meta"
-          "cmd/prompt-history-record"
-        ];
+        subPackages = [ "." ];
 
         meta = {
           description = "Markdown table formatter and prompt-history recorder for sheafdb";
@@ -37,15 +34,15 @@
     in
     {
       # What a consuming repository takes. Put this derivation in its dev
-      # shell and the four commands are on PATH by name, so a prek hook
-      # and a Claude Code hook each name a command rather than a path.
+      # shell and sheafdb-tools is on PATH by name, so a prek hook and a
+      # Claude Code hook each name a command rather than a path.
       packages = forAllSystems (pkgs: rec {
         sheafdb-tools = mkTools pkgs;
         default = sheafdb-tools;
       });
 
       # For working on the tools themselves. It does not hold the built
-      # commands: `go run ./cmd/<name>` is the loop here.
+      # binary: `go run . <subcommand>` is the loop here.
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           name = "sheafdb-tools";
@@ -63,7 +60,7 @@
             echo "sheafdb-tools"
             echo
             echo "  go test ./... && go vet ./...     the tests"
-            echo "  go run ./cmd/md-table-fmt -n .    align, report only"
+            echo "  go run . md-table-fmt -n *.md     align, report only"
             echo "  prek install                      the git hooks, once per clone"
             echo
           '';

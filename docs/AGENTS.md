@@ -16,9 +16,9 @@ each with a date. `md-table-fmt.md` is the model.
 repository. The flake pins every tool; name a version only where the
 version matters.
 
-**In the same commit.** A command added to `cmd/` gets its page here, its
-row in the root `README.md` table, and its row in this directory's table
-below.
+**In the same commit.** A subcommand added to `main.go` gets its page
+here, its row in the root `README.md` table, and its row in this
+directory's table below.
 
 | page                                   | the tool                                      |
 |----------------------------------------|-----------------------------------------------|

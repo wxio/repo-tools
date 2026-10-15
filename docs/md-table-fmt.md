@@ -4,15 +4,15 @@ Aligns the tables in a Markdown file, so a page reads in the raw file and
 not only in a viewer.
 
 ```sh
-md-table-fmt docs/architecture/lowering.md
-md-table-fmt -n $(git ls-files '*.md')     # report only
-md-table-fmt -q AGENTS.md                  # refusals only
+sheafdb-tools md-table-fmt docs/architecture/lowering.md
+sheafdb-tools md-table-fmt -n $(git ls-files '*.md')     # report only
+sheafdb-tools md-table-fmt -q AGENTS.md                  # refusals only
 prek run md-table-fmt --all-files
 ```
 
 In this repository, where the command is the source, run it with `go
-run ./cmd/md-table-fmt` instead. In a repository that takes the flake,
-the command is on `PATH` by name.
+run . md-table-fmt` instead. In a repository that takes the flake,
+`sheafdb-tools` is on `PATH` by name.
 
 | flag      | what it does                                                   |
 |-----------|----------------------------------------------------------------|

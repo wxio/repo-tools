@@ -1,10 +1,10 @@
 // Package prompthistory writes a prompt-history entry for every turn of a Claude
 // Code session, and one for every subagent the session delegated to.
 //
-// It is the library behind two commands. cmd/prompt-history-record is the
-// Stop hook: it reads the hook JSON on stdin and calls [Record].
-// cmd/prompt-history-meta rebuilds the index and calls [Rebuild]. A third
-// command, cmd/prompt-history-guard, is the prek hook that keeps the
+// It is the library behind two subcommands of sheafdb-tools.
+// prompt-history-record is the Stop hook: it reads the hook JSON on stdin and
+// calls [Record]. prompt-history-meta rebuilds the index and calls [Rebuild]. A
+// third subcommand, prompt-history-guard, is the prek hook that keeps the
 // transcripts in commits of their own; it shares no code with this package.
 //
 // [Record] parses the just-finished turn from the transcript and writes:

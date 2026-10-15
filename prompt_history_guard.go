@@ -1,5 +1,7 @@
-// Command prompt-history-guard keeps the .prompt-history/ transcripts in
-// commits of their own.
+package main
+
+// prompt_history_guard.go is the prompt-history-guard subcommand. It keeps
+// the .prompt-history/ transcripts in commits of their own.
 //
 // It runs as a local prek hook, before the commit is made, and does two things
 // in one pass over the index:
@@ -15,11 +17,10 @@
 // alone, as is one that stages none.
 //
 // The transcripts are written by the Claude Code Stop hook,
-// cmd/prompt-history-record. They are a record of how the work was done,
+// prompt-history-record. They are a record of how the work was done,
 // not part of it, so they belong in commits of their own: `git log -- <path>`
 // over the real tree then stays readable, and a transcript commit can be
 // dropped or rewritten without disturbing any code change.
-package main
 
 import (
 	"bytes"
@@ -38,7 +39,11 @@ const (
 	listLimit = 10
 )
 
-func main() {
+// promptHistoryGuard is the command line of prompt-history-guard. It has no
+// flags: it asks git what the commit stages.
+type promptHistoryGuard struct{}
+
+func (g *promptHistoryGuard) Run() error {
 	var (
 		paths   []string
 		history []string
@@ -47,31 +52,32 @@ func main() {
 		err     error
 	)
 	if paths, err = stagedPaths(); err != nil {
-		fail(err)
+		return guardFailed(err)
 	}
 	if history, other = partition(paths); len(history) == 0 || len(other) == 0 {
-		return
+		return nil
 	}
 
 	// The commit mixes the two. Take the transcripts out of the index and look
 	// again: the unstage is what makes the commit legal, and the report below
 	// is for the case where it did not.
 	if err = unstage(history, other); err != nil {
-		fail(err)
+		return guardFailed(err)
 	}
 	if paths, err = stagedPaths(); err != nil {
-		fail(err)
+		return guardFailed(err)
 	}
 	if report = check(paths); report != "" {
 		fmt.Fprint(os.Stderr, report)
-		os.Exit(1)
+		return exitCode(1)
 	}
+	return nil
 }
 
-// fail reports a failure of the hook itself, rather than of the commit.
-func fail(err error) {
+// guardFailed reports a failure of the hook itself, rather than of the commit.
+func guardFailed(err error) error {
 	fmt.Fprintf(os.Stderr, "prompt-history-guard: %v\n", err)
-	os.Exit(2)
+	return exitCode(2)
 }
 
 // partition splits the staged paths into the transcripts and everything else.

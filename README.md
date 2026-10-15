@@ -1,26 +1,29 @@
 # sheafdb-tools
 
 The small programs the sheafdb repositories run on themselves: a Markdown
-table formatter and a prompt-history recorder for Claude Code. Four
-commands, two libraries, nothing outside the Go standard library.
+table formatter and a prompt-history recorder for Claude Code. One
+binary, `sheafdb-tools`, with four subcommands. Two libraries. One
+dependency outside the Go standard library: `github.com/jpillora/opts`,
+which parses the command line.
 
 Nothing here is about sheafdb. A command reads the repository it is given
 and names no path above it, so any repository can install the flake and
 get the same hooks.
 
-| command                 | what it does                                                        |
+| subcommand              | what it does                                                        |
 |-------------------------|---------------------------------------------------------------------|
 | `md-table-fmt`          | aligns the tables of a `.md` file, so it reads in the raw file      |
 | `prompt-history-record` | the Claude Code `Stop` hook: writes an entry per turn and per agent |
 | `prompt-history-meta`   | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
 | `prompt-history-guard`  | the prek hook: keeps `.prompt-history/` in commits of its own       |
 
-Each one has a page in [docs/](docs/).
+Run one as `sheafdb-tools <subcommand>`. Each one has a page in
+[docs/](docs/).
 
 ## Install into a repository
 
-Take the flake as an input, so `flake.lock` pins the commit and the four
-commands are on `PATH` by name.
+Take the flake as an input, so `flake.lock` pins the commit and
+`sheafdb-tools` is on `PATH` by name.
 
 ```nix
 {
@@ -51,7 +54,7 @@ nix flake update sheafdb-tools
 ### Without nix
 
 ```sh
-go run github.com/wxio/sheafdb-tools/cmd/md-table-fmt@latest -n .
+go run github.com/wxio/sheafdb-tools@latest md-table-fmt -n README.md
 ```
 
 The repository is private, so two settings have to be right first.
@@ -95,12 +98,12 @@ fix. Point the consumer's flake input at your checkout instead:
 nix develop --override-input sheafdb-tools "path:/abs/path/to/sheafdb-tools"
 ```
 
-The consumer's dev shell then builds the four commands from your working
+The consumer's dev shell then builds `sheafdb-tools` from your working
 tree, uncommitted edits included. Commit, push and
 `nix flake update sheafdb-tools` once the fix is right.
 
 **It reaches the hooks.** A prek hook and the Claude Code `Stop` hook
-each name a bare command, which resolves through `PATH`, and the dev
+each name `sheafdb-tools`, which resolves through `PATH`, and the dev
 shell sets `PATH`. So both run your build with no further wiring. That
 is the point of the override: `go run` by hand exercises your checkout,
 but only the override exercises what the consumer's hooks will run.
@@ -112,7 +115,7 @@ out afterwards.
 
 **It is a nix build, not `go build`.** Every switch and every reload
 runs `buildGo127Module` in a sandbox: tens of seconds, and nothing
-watches the Go sources. Use `go run ./cmd/<name>` here for the fast
+watches the Go sources. Use `go run . <subcommand>` here for the fast
 inner loop, and the override to check the thing the hooks will run.
 
 A consumer can wire the flag to an environment variable, so the switch
@@ -124,7 +127,7 @@ section 8 is the page.
 
 `use ../tools` in the consumer's `go.work` also builds your checkout,
 for a consumer that calls
-`go run github.com/wxio/sheafdb-tools/cmd/<name>` rather than the
+`go run github.com/wxio/sheafdb-tools <subcommand>` rather than the
 command by name.
 
 It is `use` and not `replace`. A `replace` line on its own fails with

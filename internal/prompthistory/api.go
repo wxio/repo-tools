@@ -5,16 +5,30 @@ import (
 	"path/filepath"
 )
 
+// Options says what Record writes.
+type Options struct {
+	// All records every turn of the transcript, not only the last one. It is
+	// the backfill, for a session the hook missed. In that mode an entry's
+	// time is the turn's own last timestamp and no worktree status is
+	// recorded, since the tree's state now says nothing about a turn that
+	// ended earlier.
+	All bool
+
+	// Meta adds a row to meta-info.csv for each entry Record writes. With
+	// Meta false the entries are written and the CSV is left as it is;
+	// [Rebuild] makes the CSV from the entries later.
+	//
+	// The CSV is also how a continued agent finds the file it already has.
+	// With Meta false, an agent continued in a later turn gets a second file.
+	Meta bool
+}
+
 // Record writes an entry for the last turn of the transcript the hook payload
-// names, or for every turn of it when all is true.
-//
-// all is the backfill, for a session the hook missed. In that mode an entry's
-// time is the turn's own last timestamp and no worktree status is recorded,
-// since the tree's state now says nothing about a turn that ended earlier.
+// names, or for every turn of it when opt.All is true.
 //
 // A payload naming no readable transcript, or one holding no user prompt, is
 // skipped rather than reported: the caller is a Stop hook and must not fail.
-func Record(payload map[string]any, all bool) {
+func Record(payload map[string]any, opt Options) {
 	var (
 		transcriptPath = asString(payload["transcript_path"])
 		turns          [][]map[string]any
@@ -33,11 +47,11 @@ func Record(payload map[string]any, all bool) {
 		logSkip("no user prompt in transcript")
 		return
 	}
-	if !all {
+	if !opt.All {
 		turns = turns[len(turns)-1:]
 	}
 	for _, turn := range turns {
-		record(payload, turn, all)
+		record(payload, turn, opt.All, opt.Meta)
 	}
 }
 

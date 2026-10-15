@@ -1,7 +1,9 @@
 # sheafdb-tools
 
-The small programs the sheafdb repositories run on themselves. Four
-commands, two libraries, no dependency outside the Go standard library.
+The small programs the sheafdb repositories run on themselves. One
+binary, `sheafdb-tools`, with four subcommands. Two libraries. One
+dependency outside the Go standard library: `github.com/jpillora/opts`,
+which parses the command line. Add no other.
 
 Nothing here is about sheafdb. A command reads the repository it is given
 and names no path above it, so any repository can install the flake and
@@ -96,35 +98,37 @@ Do not do this by hand. `md-table-fmt` does it, and a prek hook runs it
 over the Markdown files a commit stages:
 
 ```sh
-go run ./cmd/md-table-fmt docs/md-table-fmt.md
-go run ./cmd/md-table-fmt -n $(git ls-files '*.md')   # report only
+go run . md-table-fmt docs/md-table-fmt.md
+go run . md-table-fmt -n $(git ls-files '*.md')   # report only
 ```
 
 This repository is the source of that program, so it runs it with `go
-run`. A repository that takes the flake runs `md-table-fmt` by name.
+run .`. A repository that takes the flake runs `sheafdb-tools
+md-table-fmt`.
 
 This applies to every `.md` here, this file included.
 
 ## The layout
 
-| path                        | what it is                                   |
-|-----------------------------|----------------------------------------------|
-| `cmd/md-table-fmt`          | aligns the tables of a `.md` file            |
-| `cmd/prompt-history-record` | the Claude Code `Stop` hook                  |
-| `cmd/prompt-history-meta`   | rebuilds the prompt-history index            |
-| `cmd/prompt-history-guard`  | the prek hook over `.prompt-history/`        |
-| `internal/mdtable`          | the library behind `md-table-fmt`            |
-| `internal/prompthistory`    | the library behind `record` and `meta`       |
-| `docs/`                     | one page per tool; `docs/AGENTS.md` is first |
+| path                       | what it is                                                    |
+|----------------------------|---------------------------------------------------------------|
+| `main.go`                  | `sheafdb-tools`: the opts command line and the exit codes     |
+| `md_table_fmt.go`          | `md-table-fmt`: aligns the tables of a `.md` file             |
+| `prompt_history_record.go` | `prompt-history-record`: the Claude Code `Stop` hook          |
+| `prompt_history_meta.go`   | `prompt-history-meta`: rebuilds the prompt-history index      |
+| `prompt_history_guard.go`  | `prompt-history-guard`: the prek hook over `.prompt-history/` |
+| `internal/mdtable`         | the library behind `md-table-fmt`                             |
+| `internal/prompthistory`   | the library behind `record` and `meta`                        |
+| `docs/`                    | one page per tool; `docs/AGENTS.md` is first                  |
 
 ## Commands
 
 ```sh
 go test ./... && go vet ./...
-go run ./cmd/md-table-fmt -n $(git ls-files '*.md')
-go run ./cmd/prompt-history-meta -root /path/to/repo
+go run . md-table-fmt -n $(git ls-files '*.md')
+go run . prompt-history-meta -root /path/to/repo
 
-nix build .#sheafdb-tools     # the four binaries, as a consumer gets them
+nix build .#sheafdb-tools     # the binary, as a consumer gets it
 prek install                  # the git hooks, once per clone and worktree
 prek run --all-files
 ```

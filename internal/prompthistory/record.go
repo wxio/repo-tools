@@ -25,7 +25,8 @@ type agentEntry struct {
 
 // record writes one turn's entry. backfill says the turn ended some time ago:
 // its clock is then the transcript's, and the worktree's status is left out.
-func record(payload map[string]any, turn []map[string]any, backfill bool) {
+// meta says to add the entry's rows to meta-info.csv.
+func record(payload map[string]any, turn []map[string]any, backfill, meta bool) {
 	promptEntry := turn[0]
 	info := summarizeTurn(turn)
 	projectDir := repoFor(info, payload)
@@ -292,7 +293,9 @@ func record(payload map[string]any, turn []map[string]any, backfill bool) {
 	for _, a := range agents {
 		rows = append(rows, a.row)
 	}
-	saveMeta(historyRoot, rows)
+	if meta {
+		saveMeta(historyRoot, rows)
+	}
 
 	msg := "📝 Wrote " + entryRel
 	if len(agents) > 0 {

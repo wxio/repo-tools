@@ -4,20 +4,21 @@ Writes one Markdown entry per turn of a Claude Code session, and one per
 subagent, into the repository the turn worked in.
 
 ```sh
-prompt-history-meta                        # rebuild the index
-prompt-history-meta -root /path/to/repo    # ... for another repository
-prompt-history-record -all < hook.json     # backfill a missed session
+sheafdb-tools prompt-history-meta                          # rebuild the index
+sheafdb-tools prompt-history-meta -root /path/to/repo      # ... for another repository
+sheafdb-tools prompt-history-record -all < hook.json       # backfill a missed session
+sheafdb-tools prompt-history-record -meta=false < hook.json  # an entry, and no CSV row
 prek run prompt-history-guard --all-files
 ```
 
-Three commands and one library:
+Three subcommands of `sheafdb-tools`, and one library:
 
-| program                     | what it does                                                        |
-|-----------------------------|---------------------------------------------------------------------|
-| `cmd/prompt-history-record` | the Claude Code `Stop` hook: writes an entry per turn and per agent |
-| `cmd/prompt-history-meta`   | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
-| `cmd/prompt-history-guard`  | the prek hook: keeps `.prompt-history/` in commits of its own       |
-| `internal/prompthistory`    | the library behind the first two                                    |
+| program                  | what it does                                                        |
+|--------------------------|---------------------------------------------------------------------|
+| `prompt-history-record`  | the Claude Code `Stop` hook: writes an entry per turn and per agent |
+| `prompt-history-meta`    | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
+| `prompt-history-guard`   | the prek hook: keeps `.prompt-history/` in commits of its own       |
+| `internal/prompthistory` | the library behind the first two                                    |
 
 ## 1. What it writes
 
@@ -64,7 +65,7 @@ hook in `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "prompt-history-record",
+            "command": "sheafdb-tools prompt-history-record",
             "timeout": 30,
             "statusMessage": "Recording prompt history"
           }
@@ -81,7 +82,7 @@ And the guard in `prek.toml`:
 {
   id = "prompt-history-guard",
   name = ".prompt-history is committed on its own",
-  entry = "prompt-history-guard",
+  entry = "sheafdb-tools prompt-history-guard",
   language = "system",
   pass_filenames = false,
   always_run = true
@@ -122,6 +123,10 @@ git add .prompt-history && git commit -m "the transcripts"
 - **The CSV is derived.** Every column it holds is also in the Markdown.
   `prompt-history-meta` reconstructs it, which is also the backfill for a
   history written before the CSV existed.
+- **`-meta=false` turns the CSV off.** The record hook then writes the
+  entries and leaves `meta-info.csv` as it is. `prompt-history-meta`
+  builds the CSV later. The CSV is also how a continued agent finds its
+  file, so with the CSV off a continued agent gets a second file.
 - **Do not read or edit the transcripts.** They are generated. An agent
   that reads them burns context on its own past output.
 
@@ -134,3 +139,8 @@ resolution in `api.go` and `transcript.go` already read `git rev-parse`,
 `CLAUDE_PROJECT_DIR` and the working directory in that order, so the
 commands needed no change to work from outside the repository they
 record. That was the test of whether the split was possible.
+
+**2026-10-15.** The four commands became subcommands of one binary,
+`sheafdb-tools`, on `github.com/jpillora/opts`. A hook now names
+`sheafdb-tools prompt-history-record`, not `prompt-history-record`. The
+record hook got `-meta`, on by default, to turn the CSV row off.

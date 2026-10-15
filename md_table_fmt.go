@@ -1,7 +1,10 @@
-// Command md-table-fmt aligns the tables in Markdown files.
+package main
+
+// md_table_fmt.go is the md-table-fmt subcommand. It aligns the tables in
+// Markdown files.
 //
-//	md-table-fmt docs/architecture/lowering.md
-//	md-table-fmt -n $(git ls-files '*.md')
+//	sheafdb-tools md-table-fmt docs/architecture/lowering.md
+//	sheafdb-tools md-table-fmt -n $(git ls-files '*.md')
 //
 // It is the "Markdown style" rule of this repo's AGENTS.md, made a program:
 // every cell is padded to the width of the widest cell in its column, and
@@ -32,10 +35,8 @@
 // reported and left alone for the same reason, but does not fail: the
 // repo has tables that are over the limit and are not wrong enough to
 // block a commit over.
-package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -45,33 +46,35 @@ import (
 const (
 	// exitChanged says a file was rewritten. prek reads it as a failed
 	// hook, which is how a fixer tells the author to look.
-	exitChanged = 1
+	exitChanged exitCode = 1
 
 	// exitRefused says the program cannot fix what it found.
-	exitRefused = 2
+	exitRefused exitCode = 2
 )
 
-func main() {
+// mdTableFmt is the command line of md-table-fmt.
+type mdTableFmt struct {
+	DryRun bool     `opts:"name=n" help:"report what would change; write nothing"`
+	Quiet  bool     `opts:"name=q" help:"report nothing but refusals"`
+	Wide   int      `help:"report a cell wider than this many runes; 0 turns the report off"`
+	Paths  []string `opts:"mode=arg,name=file.md"`
+}
+
+func (c *mdTableFmt) Run() error {
 	var (
-		dry     = flag.Bool("n", false, "report what would change; write nothing")
-		wide    = flag.Int("wide", 70, "report a cell wider than this many runes; 0 turns the report off")
-		quiet   = flag.Bool("q", false, "report nothing but refusals")
-		paths   []string
 		changed int
 		refused int
 		err     error
 	)
-	flag.Usage = usage
-	flag.Parse()
-	if paths = flag.Args(); len(paths) == 0 {
-		usage()
-		os.Exit(exitRefused)
+	if len(c.Paths) == 0 {
+		fmt.Fprintln(os.Stderr, "md-table-fmt: no file given; see --help")
+		return exitRefused
 	}
-	for _, path := range paths {
+	for _, path := range c.Paths {
 		var n, r int
-		if n, r, err = one(path, mdtable.Formatter{
-			Wide: *wide,
-		}, *dry, *quiet); err != nil {
+		if n, r, err = formatFile(path, mdtable.Formatter{
+			Wide: c.Wide,
+		}, c.DryRun, c.Quiet); err != nil {
 			fmt.Fprintf(os.Stderr, "md-table-fmt: %v\n", err)
 			refused++
 			continue
@@ -80,18 +83,19 @@ func main() {
 		refused += r
 	}
 	if refused > 0 {
-		os.Exit(exitRefused)
+		return exitRefused
 	}
 	if changed > 0 {
-		os.Exit(exitChanged)
+		return exitChanged
 	}
+	return nil
 }
 
-// one formats a single file. It returns whether the file changed and
+// formatFile formats a single file. It returns whether the file changed and
 // whether it was refused, so that every file is looked at before the
 // program decides its exit code -- a run over the whole repo reports
 // every offending table, not the first.
-func one(path string, f mdtable.Formatter, dry, quiet bool) (int, int, error) {
+func formatFile(path string, f mdtable.Formatter, dry, quiet bool) (int, int, error) {
 	var (
 		src  []byte
 		res  mdtable.Result
@@ -132,13 +136,4 @@ func one(path string, f mdtable.Formatter, dry, quiet bool) (int, int, error) {
 		fmt.Printf("%s: %d tables aligned\n", path, res.Tables)
 	}
 	return 1, 0, nil
-}
-
-func usage() {
-	fmt.Fprint(os.Stderr, `md-table-fmt aligns the tables in Markdown files.
-
-usage: md-table-fmt [-n] [-q] [-wide N] file.md...
-
-`)
-	flag.PrintDefaults()
 }
