@@ -51,6 +51,23 @@ load.
 - Say the size before you start: minutes, or an afternoon.
 - End every turn with one line that starts "YYYYMMDD - HH:MM **Next**:".
 
+## Prompt output
+
+At the end of each prompt, write a copy of your final reply to
+`docs/output/YYYYMMDD-HHMM__<branch>__<prompt-descr>.md`, relative to this
+repository root.
+
+- `YYYYMMDD-HHMM` is the local time at the end of the prompt. Get it
+  with `date +%Y%m%d-%H%M`.
+- `<branch>` is the current branch of the repository that holds
+  `docs/output/`. Get it with `git branch --show-current`. Replace each
+  `/` with `-`, so the name makes no subdirectory.
+- `<prompt-descr>` is the request in 2 to 5 words, in kebab-case. An
+  example is `tmux-delete-session`.
+- Copy the reply as it is. Do not summarise it.
+- The file is an edit like any other. Do not stage or commit it until
+  told "commit".
+
 ## Development environment
 
 `flake.nix` pins the toolchain. Enter the shell with `direnv allow`
