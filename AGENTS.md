@@ -57,6 +57,10 @@ At the end of each prompt, write a copy of your final reply to
 `docs/output/YYYYMMDD-HHMM__<branch>__<prompt-descr>.md`, relative to this
 repository root.
 
+Do not write the file when the prompt is a commit and no other work is
+done. If the prompt asks for a commit and other work, write the file as
+usual.
+
 - `YYYYMMDD-HHMM` is the local time at the end of the prompt. Get it
   with `date +%Y%m%d-%H%M`.
 - `<branch>` is the current branch of the repository that holds
