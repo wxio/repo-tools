@@ -5,6 +5,7 @@
 //	repo-tools prompt-history-record < hook.json
 //	repo-tools prompt-history-meta -root /path/to/repo
 //	repo-tools prompt-history-guard
+//	repo-tools tmux attach <session>
 //
 // `repo-tools <subcommand> --help` lists the flags of one subcommand. A
 // flag takes one dash or two: `-n` and `--n` are the same flag.
@@ -21,11 +22,13 @@ import (
 	"os"
 
 	"github.com/jpillora/opts"
+	"github.com/wxio/repo-tools/internal/argcomplete"
 	"github.com/wxio/repo-tools/internal/exitcode"
 	"github.com/wxio/repo-tools/mdtablefmt"
 	"github.com/wxio/repo-tools/prompthistoryguard"
 	"github.com/wxio/repo-tools/prompthistorymeta"
 	"github.com/wxio/repo-tools/prompthistoryrecord"
+	"github.com/wxio/repo-tools/tmux"
 )
 
 var (
@@ -35,6 +38,13 @@ var (
 		Summary("The small programs the sheafdb repositories run on themselves.").
 		EmbedGlobalFlagSet().
 		Complete()
+
+	// argCompleters completes the first argument of these subcommands.
+	// opts completes an argument as a file name, so main answers first.
+	argCompleters = map[string]opts.Completer{
+		"tmux attach":       new(tmux.Session),
+		"tmux kill-session": new(tmux.Session),
+	}
 )
 
 func init() {
@@ -49,6 +59,15 @@ func init() {
 
 	builder.AddCommand(opts.New(prompthistoryguard.NewPromptHistoryGuardCmd()).Name("prompt-history-guard").
 		Summary("The prek hook: keep .prompt-history/ in commits of its own."))
+
+	builder.AddCommand(opts.New(&struct{}{}).Name("tmux").
+		Summary("Make, attach to or kill a tmux session; <tab> lists the sessions.").
+		AddCommand(opts.New(tmux.NewNewCmd()).Name("new").
+			Summary("Make a tmux session and attach to it, or switch to it inside tmux.")).
+		AddCommand(opts.New(tmux.NewAttachCmd()).Name("attach").
+			Summary("Attach to a tmux session, or switch to it inside tmux.")).
+		AddCommand(opts.New(tmux.NewKillSessionCmd()).Name("kill-session").
+			Summary("Kill a tmux session.")))
 }
 
 func main() {
@@ -57,6 +76,9 @@ func main() {
 		code exitcode.Code
 		err  error
 	)
+	if argcomplete.Run(argCompleters) {
+		return
+	}
 	// Parse, not ParseArgsError: opts returns --help and --install as
 	// errors of unexported types, and Parse exits 0 on them where main
 	// cannot tell them apart.
