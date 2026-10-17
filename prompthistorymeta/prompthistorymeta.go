@@ -1,6 +1,4 @@
-package main
-
-// prompt_history_meta.go is the prompt-history-meta subcommand. It rebuilds
+// Package prompthistorymeta is the prompt-history-meta subcommand. It rebuilds
 // .prompt-history/meta-info.csv from the entries already on disk.
 //
 // The CSV is the index over the history: one row per turn and per agent, every
@@ -11,6 +9,7 @@ package main
 // history recorded with `prompt-history-record -meta=false` gets its index.
 //
 // It reads nothing from stdin.
+package prompthistorymeta
 
 import (
 	"fmt"
@@ -18,12 +17,17 @@ import (
 	"github.com/wxio/repo-tools/internal/prompthistory"
 )
 
-// promptHistoryMeta is the command line of prompt-history-meta.
-type promptHistoryMeta struct {
+// PromptHistoryMetaCmd is the command line of prompt-history-meta.
+type PromptHistoryMetaCmd struct {
 	Root string `help:"the repository to work in (default: the git top level of the working directory)"`
 }
 
-func (c *promptHistoryMeta) Run() error {
+// NewPromptHistoryMetaCmd returns the command line of prompt-history-meta.
+func NewPromptHistoryMetaCmd() *PromptHistoryMetaCmd {
+	return &PromptHistoryMetaCmd{}
+}
+
+func (c *PromptHistoryMetaCmd) Run() error {
 	var (
 		path string
 		rows int

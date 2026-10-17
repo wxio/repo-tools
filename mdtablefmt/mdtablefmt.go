@@ -1,6 +1,4 @@
-package main
-
-// md_table_fmt.go is the md-table-fmt subcommand. It aligns the tables in
+// Package mdtablefmt is the md-table-fmt subcommand. It aligns the tables in
 // Markdown files.
 //
 //	repo-tools md-table-fmt docs/architecture/lowering.md
@@ -35,32 +33,42 @@ package main
 // reported and left alone for the same reason, but does not fail: the
 // repo has tables that are over the limit and are not wrong enough to
 // block a commit over.
+package mdtablefmt
 
 import (
 	"fmt"
 	"os"
 
+	"github.com/wxio/repo-tools/internal/exitcode"
 	"github.com/wxio/repo-tools/internal/mdtable"
 )
 
 const (
 	// exitChanged says a file was rewritten. prek reads it as a failed
 	// hook, which is how a fixer tells the author to look.
-	exitChanged exitCode = 1
+	exitChanged exitcode.Code = 1
 
 	// exitRefused says the program cannot fix what it found.
-	exitRefused exitCode = 2
+	exitRefused exitcode.Code = 2
 )
 
-// mdTableFmt is the command line of md-table-fmt.
-type mdTableFmt struct {
+// MdTableFmtCmd is the command line of md-table-fmt.
+type MdTableFmtCmd struct {
 	DryRun bool     `opts:"name=n" help:"report what would change; write nothing"`
 	Quiet  bool     `opts:"name=q" help:"report nothing but refusals"`
 	Wide   int      `help:"report a cell wider than this many runes; 0 turns the report off"`
 	Paths  []string `opts:"mode=arg,name=file.md"`
 }
 
-func (c *mdTableFmt) Run() error {
+// NewMdTableFmtCmd returns the command line of md-table-fmt, with the
+// defaults of its flags set.
+func NewMdTableFmtCmd() *MdTableFmtCmd {
+	return &MdTableFmtCmd{
+		Wide: 70,
+	}
+}
+
+func (c *MdTableFmtCmd) Run() error {
 	var (
 		changed int
 		refused int

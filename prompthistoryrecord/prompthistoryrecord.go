@@ -1,6 +1,4 @@
-package main
-
-// prompt_history_record.go is the prompt-history-record subcommand: the Claude
+// Package prompthistoryrecord is the prompt-history-record subcommand: the Claude
 // Code Stop hook that writes a prompt-history entry for every turn, and one for
 // every subagent the session delegated to.
 //
@@ -15,6 +13,7 @@ package main
 //
 // The hook is best-effort: any failure is swallowed and it always exits 0, so it
 // can never block or break a session.
+package prompthistoryrecord
 
 import (
 	"encoding/json"
@@ -25,13 +24,21 @@ import (
 	"github.com/wxio/repo-tools/internal/prompthistory"
 )
 
-// promptHistoryRecord is the command line of prompt-history-record.
-type promptHistoryRecord struct {
+// PromptHistoryRecordCmd is the command line of prompt-history-record.
+type PromptHistoryRecordCmd struct {
 	All  bool `help:"record every turn of the transcript, not only the last"`
 	Meta bool `help:"add a row to .prompt-history/meta-info.csv for each entry; -meta=false turns it off"`
 }
 
-func (c *promptHistoryRecord) Run() error {
+// NewPromptHistoryRecordCmd returns the command line of
+// prompt-history-record, with the defaults of its flags set.
+func NewPromptHistoryRecordCmd() *PromptHistoryRecordCmd {
+	return &PromptHistoryRecordCmd{
+		Meta: true,
+	}
+}
+
+func (c *PromptHistoryRecordCmd) Run() error {
 	var (
 		payload = map[string]any{}
 		raw     []byte

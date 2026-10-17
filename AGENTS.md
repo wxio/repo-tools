@@ -1,9 +1,9 @@
 # repo-tools
 
 The small programs the sheafdb repositories run on themselves. One
-binary, `repo-tools`, with four subcommands. Two libraries. One
-dependency outside the Go standard library: `github.com/jpillora/opts`,
-which parses the command line. Add no other.
+binary, `repo-tools`, with four subcommands, each in a package of its
+own. Three libraries. One dependency outside the Go standard library:
+`github.com/jpillora/opts`, which parses the command line. Add no other.
 
 Nothing here is about sheafdb. A command reads the repository it is given
 and names no path above it, so any repository can install the flake and
@@ -134,16 +134,17 @@ This applies to every `.md` here, this file included.
 
 ## The layout
 
-| path                       | what it is                                                    |
-|----------------------------|---------------------------------------------------------------|
-| `main.go`                  | `repo-tools`: the opts command line and the exit codes     |
-| `md_table_fmt.go`          | `md-table-fmt`: aligns the tables of a `.md` file             |
-| `prompt_history_record.go` | `prompt-history-record`: the Claude Code `Stop` hook          |
-| `prompt_history_meta.go`   | `prompt-history-meta`: rebuilds the prompt-history index      |
-| `prompt_history_guard.go`  | `prompt-history-guard`: the prek hook over `.prompt-history/` |
-| `internal/mdtable`         | the library behind `md-table-fmt`                             |
-| `internal/prompthistory`   | the library behind `record` and `meta`                        |
-| `docs/`                    | one page per tool; `docs/AGENTS.md` is first                  |
+| path                     | what it is                                                    |
+|--------------------------|---------------------------------------------------------------|
+| `main.go`                | `repo-tools`: registers the subcommands; sets the exit code   |
+| `mdtablefmt/`            | `md-table-fmt`: aligns the tables of a `.md` file             |
+| `prompthistoryrecord/`   | `prompt-history-record`: the Claude Code `Stop` hook          |
+| `prompthistorymeta/`     | `prompt-history-meta`: rebuilds the prompt-history index      |
+| `prompthistoryguard/`    | `prompt-history-guard`: the prek hook over `.prompt-history/` |
+| `internal/exitcode`      | the error that sets the exit code of the process              |
+| `internal/mdtable`       | the library behind `md-table-fmt`                             |
+| `internal/prompthistory` | the library behind `record` and `meta`                        |
+| `docs/`                  | one page per tool; `docs/AGENTS.md` is first                  |
 
 ## Commands
 

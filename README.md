@@ -2,7 +2,7 @@
 
 The small programs the sheafdb repositories run on themselves: a Markdown
 table formatter and a prompt-history recorder for Claude Code. One
-binary, `repo-tools`, with four subcommands. Two libraries. One
+binary, `repo-tools`, with four subcommands. Three libraries. One
 dependency outside the Go standard library: `github.com/jpillora/opts`,
 which parses the command line.
 

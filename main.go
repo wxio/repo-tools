@@ -1,5 +1,5 @@
 // Command repo-tools holds the small programs the sheafdb repositories run
-// on themselves. Each program is a subcommand:
+// on themselves. Each program is a subcommand, in a package of its own:
 //
 //	repo-tools md-table-fmt -n $(git ls-files '*.md')
 //	repo-tools prompt-history-record < hook.json
@@ -8,6 +8,11 @@
 //
 // `repo-tools <subcommand> --help` lists the flags of one subcommand. A
 // flag takes one dash or two: `-n` and `--n` are the same flag.
+//
+// `repo-tools --install` installs the shell completion for the shell in
+// $SHELL (bash, zsh or fish). `repo-tools --uninstall` removes it. The
+// completion runs this binary by its absolute path, so install it again
+// after the binary moves, as it does on each nix build.
 package main
 
 import (
@@ -16,59 +21,53 @@ import (
 	"os"
 
 	"github.com/jpillora/opts"
+	"github.com/wxio/repo-tools/internal/exitcode"
+	"github.com/wxio/repo-tools/mdtablefmt"
+	"github.com/wxio/repo-tools/prompthistoryguard"
+	"github.com/wxio/repo-tools/prompthistorymeta"
+	"github.com/wxio/repo-tools/prompthistoryrecord"
 )
 
-// root is the command line above the subcommands. It has no flags of its own.
-type root struct{}
+var (
+	rootCmd = &struct{}{} // empty root — no top-level flags
+	builder = opts.New(rootCmd).
+		Name("repo-tools").
+		Summary("The small programs the sheafdb repositories run on themselves.").
+		EmbedGlobalFlagSet().
+		Complete()
+)
 
-// exitCode is an error that sets the exit code of the process. A subcommand
-// returns it when the code means something to its caller, as the code of a
-// prek hook does. The subcommand reports the problem itself, so main prints
-// nothing more.
-type exitCode int
+func init() {
+	builder.AddCommand(opts.New(mdtablefmt.NewMdTableFmtCmd()).Name("md-table-fmt").
+		Summary("Align the tables in Markdown files."))
 
-func (c exitCode) Error() string {
-	return fmt.Sprintf("exit status %d", int(c))
+	builder.AddCommand(opts.New(prompthistoryrecord.NewPromptHistoryRecordCmd()).Name("prompt-history-record").
+		Summary("The Claude Code Stop hook: write a prompt-history entry for the last turn."))
+
+	builder.AddCommand(opts.New(prompthistorymeta.NewPromptHistoryMetaCmd()).Name("prompt-history-meta").
+		Summary("Rebuild .prompt-history/meta-info.csv from the entries on disk."))
+
+	builder.AddCommand(opts.New(prompthistoryguard.NewPromptHistoryGuardCmd()).Name("prompt-history-guard").
+		Summary("The prek hook: keep .prompt-history/ in commits of its own."))
 }
 
 func main() {
 	var (
 		cli  opts.ParsedOpts
-		code exitCode
+		code exitcode.Code
 		err  error
 	)
-	cli = opts.New(&root{}).
-		Name("repo-tools").
-		Summary("The small programs the sheafdb repositories run on themselves.").
-		AddCommand(opts.New(&mdTableFmt{
-			Wide: 70,
-		}).
-			Name("md-table-fmt").
-			Summary("Align the tables in Markdown files.")).
-		AddCommand(opts.New(&promptHistoryRecord{
-			Meta: true,
-		}).
-			Name("prompt-history-record").
-			Summary("The Claude Code Stop hook: write a prompt-history entry for the last turn.")).
-		AddCommand(opts.New(&promptHistoryMeta{}).
-			Name("prompt-history-meta").
-			Summary("Rebuild .prompt-history/meta-info.csv from the entries on disk.")).
-		AddCommand(opts.New(&promptHistoryGuard{}).
-			Name("prompt-history-guard").
-			Summary("The prek hook: keep .prompt-history/ in commits of its own.")).
-		Parse()
-
-	// No subcommand was given. Show what there is to choose from.
-	if !cli.IsRunnable() {
-		fmt.Fprint(os.Stderr, cli.Selected().Help())
-		os.Exit(2)
-	}
+	// Parse, not ParseArgsError: opts returns --help and --install as
+	// errors of unexported types, and Parse exits 0 on them where main
+	// cannot tell them apart.
+	cli = builder.Parse()
 	if err = cli.Run(); err == nil {
 		return
 	}
+	// The subcommand reported the problem itself. The code is for prek.
 	if errors.As(err, &code) {
 		os.Exit(int(code))
 	}
-	fmt.Fprintf(os.Stderr, "repo-tools: %v\n", err)
-	os.Exit(1)
+	fmt.Fprintf(os.Stderr, "%s\nError: %v\n\n", cli.Selected().Help(), err)
+	os.Exit(2)
 }

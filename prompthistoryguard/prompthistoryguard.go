@@ -1,6 +1,4 @@
-package main
-
-// prompt_history_guard.go is the prompt-history-guard subcommand. It keeps
+// Package prompthistoryguard is the prompt-history-guard subcommand. It keeps
 // the .prompt-history/ transcripts in commits of their own.
 //
 // It runs as a local prek hook, before the commit is made, and does two things
@@ -21,6 +19,7 @@ package main
 // not part of it, so they belong in commits of their own: `git log -- <path>`
 // over the real tree then stays readable, and a transcript commit can be
 // dropped or rewritten without disturbing any code change.
+package prompthistoryguard
 
 import (
 	"bytes"
@@ -28,6 +27,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/wxio/repo-tools/internal/exitcode"
 )
 
 const (
@@ -39,11 +40,16 @@ const (
 	listLimit = 10
 )
 
-// promptHistoryGuard is the command line of prompt-history-guard. It has no
-// flags: it asks git what the commit stages.
-type promptHistoryGuard struct{}
+// PromptHistoryGuardCmd is the command line of prompt-history-guard. It has
+// no flags: it asks git what the commit stages.
+type PromptHistoryGuardCmd struct{}
 
-func (g *promptHistoryGuard) Run() error {
+// NewPromptHistoryGuardCmd returns the command line of prompt-history-guard.
+func NewPromptHistoryGuardCmd() *PromptHistoryGuardCmd {
+	return &PromptHistoryGuardCmd{}
+}
+
+func (g *PromptHistoryGuardCmd) Run() error {
 	var (
 		paths   []string
 		history []string
@@ -69,7 +75,7 @@ func (g *promptHistoryGuard) Run() error {
 	}
 	if report = check(paths); report != "" {
 		fmt.Fprint(os.Stderr, report)
-		return exitCode(1)
+		return exitcode.Code(1)
 	}
 	return nil
 }
@@ -77,7 +83,7 @@ func (g *promptHistoryGuard) Run() error {
 // guardFailed reports a failure of the hook itself, rather than of the commit.
 func guardFailed(err error) error {
 	fmt.Fprintf(os.Stderr, "prompt-history-guard: %v\n", err)
-	return exitCode(2)
+	return exitcode.Code(2)
 }
 
 // partition splits the staged paths into the transcripts and everything else.
