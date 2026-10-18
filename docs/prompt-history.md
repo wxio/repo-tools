@@ -16,17 +16,21 @@ Three subcommands of `repo-tools`, and one library:
 | program                  | what it does                                                        |
 |--------------------------|---------------------------------------------------------------------|
 | `prompt-history-record`  | the Claude Code `Stop` hook: writes an entry per turn and per agent |
-| `prompt-history-meta`    | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
-| `prompt-history-guard`   | the prek hook: keeps `.prompt-history/` in commits of its own       |
+| `prompt-history-meta`    | rebuilds `.prompts/history/meta-info.csv` from the entries on disk  |
+| `prompt-history-guard`   | the prek hook: keeps `.prompts/` in commits of its own              |
 | `internal/prompthistory` | the library behind the first two                                    |
 
 ## 1. What it writes
 
 ```
-<repo>/.prompt-history/<branch>/NNN-<description>.md
-<repo>/.prompt-history/<branch>/NNN-<description>/agent_<description>.md
-<repo>/.prompt-history/meta-info.csv
+<repo>/.prompts/history/<branch>/NNN-YYYYMMDD-HHmm-<description>.md
+<repo>/.prompts/history/<branch>/NNN-YYYYMMDD-HHmm-<description>/agent_<description>.md
+<repo>/.prompts/history/meta-info.csv
 ```
+
+`NNN` is the sequence number on the branch. `YYYYMMDD-HHmm` is the local
+time at the end of the turn. A backfill uses the time of the last message
+in the turn.
 
 An entry holds a header, a phase breakdown, the prompt, and a summary of
 what the turn did. An agent's file adds its whole transcript. The CSV is
@@ -81,7 +85,7 @@ And the guard in `prek.toml`:
 ```toml
 {
   id = "prompt-history-guard",
-  name = ".prompt-history is committed on its own",
+  name = ".prompts/history is committed on its own",
   entry = "repo-tools prompt-history-guard",
   language = "system",
   pass_filenames = false,
@@ -89,24 +93,29 @@ And the guard in `prek.toml`:
 }
 ```
 
-Exclude `.prompt-history` from the other hooks. The transcripts are
+Exclude `.prompts/history` from the other hooks. The transcripts are
 generated and reformatting them is noise.
 
 ## 4. The guard
 
-A commit holds the transcripts, or it holds everything else. It does not
-hold both.
+A commit holds the prompt records, or it holds everything else. It does
+not hold both.
 
-The guard takes the `.prompt-history/` paths back out of the index when
-the commit stages anything else, and refuses the commit if the mix is
-still there. A commit of transcripts alone is left alone.
+The prompt records are every path under `.prompts/`: the transcripts in
+`.prompts/history/` and the replies in `.prompts/output/`. The guard also
+treats `.prompt-history/` as a record directory. The two record
+directories can share a commit.
+
+The guard takes the record paths back out of the index when the commit
+stages anything else. It refuses the commit if the mix is still there. It
+does not touch a commit of records alone.
 
 By hand:
 
 ```sh
-git restore --staged .prompt-history
+git restore --staged .prompts
 git commit -m "the code"
-git add .prompt-history && git commit -m "the transcripts"
+git add .prompts && git commit -m "the prompt records"
 ```
 
 ## 5. Gotchas

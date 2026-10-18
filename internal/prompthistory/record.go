@@ -69,6 +69,24 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 		return
 	}
 
+	// Timing. The turn ends "now", but guard against a stale/replayed transcript
+	// (clock skew or an old file) by falling back to the last message timestamp
+	// when "now" is implausibly far past it. It comes before the filename, which
+	// carries the time.
+	startTs := parseTs(promptEntry)
+	now := time.Now().UTC()
+	var lastTs *time.Time
+	for _, e := range turn {
+		if t := parseTs(e); t != nil && (lastTs == nil || t.After(*lastTs)) {
+			lastTs = t
+		}
+	}
+	endRef := now
+	if lastTs != nil && (backfill || now.Sub(*lastTs).Seconds() > 6*3600) {
+		endRef = *lastTs
+		now = *lastTs
+	}
+
 	// Claim the filename atomically with O_CREATE|O_EXCL: nextSeq() only picks a
 	// starting point, and if a concurrent session already took it the create fails
 	// with EEXIST and we bump to the next number. This makes numbering safe across
@@ -81,7 +99,7 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 	)
 	seq := nextSeq(outDir)
 	for {
-		fpath = filepath.Join(outDir, fmt.Sprintf("%03d-%s.md", seq, slug))
+		fpath = filepath.Join(outDir, entryFileName(seq, now, slug))
 		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644); err == nil {
 			break
 		}
@@ -96,22 +114,6 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 	}
 	defer f.Close()
 
-	// Timing. The turn ends "now", but guard against a stale/replayed transcript
-	// (clock skew or an old file) by falling back to the last message timestamp
-	// when "now" is implausibly far past it.
-	startTs := parseTs(promptEntry)
-	now := time.Now().UTC()
-	var lastTs *time.Time
-	for _, e := range turn {
-		if t := parseTs(e); t != nil && (lastTs == nil || t.After(*lastTs)) {
-			lastTs = t
-		}
-	}
-	endRef := now
-	if lastTs != nil && (backfill || now.Sub(*lastTs).Seconds() > 6*3600) {
-		endRef = *lastTs
-		now = *lastTs
-	}
 	var totalSecs *float64
 	if startTs != nil {
 		d := endRef.Sub(*startTs).Seconds()
@@ -306,6 +308,12 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 	}
 }
 
+// entryFileName is NNN-YYYYMMDD-HHmm-<slug>.md: the sequence number first, so
+// nextSeq still reads it, then the local time the turn ended.
+func entryFileName(seq int, when time.Time, slug string) string {
+	return fmt.Sprintf("%03d-%s-%s.md", seq, when.Local().Format("20060102-1504"), slug)
+}
+
 func dashIfEmpty(s string) string {
 	if s == "" {
 		return "—"
@@ -337,7 +345,7 @@ type agentRecordCtx struct {
 	payload       map[string]any
 	turn          []map[string]any
 	historyRoot   string
-	entryDir      string // <branch>/NNN-<description>, the directory agents go in
+	entryDir      string // <branch>/NNN-YYYYMMDD-HHmm-<description>, the directory agents go in
 	entryName     string
 	entryRel      string
 	projectDir    string

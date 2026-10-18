@@ -15,7 +15,7 @@ get the same hooks.
 | `md-table-fmt`          | aligns the tables of a `.md` file, so it reads in the raw file      |
 | `prompt-history-record` | the Claude Code `Stop` hook: writes an entry per turn and per agent |
 | `prompt-history-meta`   | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
-| `prompt-history-guard`  | the prek hook: keeps `.prompt-history/` in commits of its own       |
+| `prompt-history-guard`  | the prek hook: keeps `.prompts/` in commits of its own              |
 | `tmux`                  | `new`, `attach` and `kill-session`; `<tab>` lists the sessions      |
 
 Run one as `repo-tools <subcommand>`. Each one has a page in

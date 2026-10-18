@@ -34,6 +34,30 @@ func TestCheck(t *testing.T) {
 			mixed: false,
 		},
 		{
+			name: "replies only",
+			paths: []string{
+				".prompts/output/20261018-1200__main__a.md",
+			},
+			mixed: false,
+		},
+		{
+			name: "transcripts and replies together",
+			paths: []string{
+				".prompt-history/main/001-a.md",
+				".prompts/history/main/001-a.md",
+				".prompts/output/20261018-1200__main__a.md",
+			},
+			mixed: false,
+		},
+		{
+			name: "replies mixed with code",
+			paths: []string{
+				".prompts/output/20261018-1200__main__a.md",
+				"AGENTS.md",
+			},
+			mixed: true,
+		},
+		{
 			name: "transcripts mixed with code",
 			paths: []string{
 				".prompt-history/main/001-a.md",
@@ -45,6 +69,7 @@ func TestCheck(t *testing.T) {
 			name: "a path that merely starts with the directory name",
 			paths: []string{
 				".prompt-historyrc",
+				".promptsrc",
 				"flake.nix",
 			},
 			mixed: false,
@@ -67,7 +92,7 @@ func TestCheckReportNamesBothSides(t *testing.T) {
 		".prompt-history/main/001-a.md",
 		"flake.nix",
 	})
-	for _, want := range []string{".prompt-history/main/001-a.md", "flake.nix", "git restore --staged"} {
+	for _, want := range []string{".prompt-history/main/001-a.md", "flake.nix", "git restore --staged .prompt-history\n"} {
 		if !strings.Contains(report, want) {
 			t.Errorf("report does not mention %q:\n%s", want, report)
 		}
@@ -105,16 +130,53 @@ func TestSplitNUL(t *testing.T) {
 // The unstage half reports its counts from partition, so both sides have to
 // come back whole.
 func TestPartition(t *testing.T) {
-	var history, other = partition([]string{
+	var records, other = partition([]string{
 		".prompt-history/main/001-a.md",
 		"flake.nix",
 		".prompt-history/meta-info.csv",
+		".prompts/output/20261018-1200__main__a.md",
 		".prompt-historyrc",
 	})
-	if len(history) != 2 {
-		t.Errorf("history = %q, want the 2 paths under %s", history, promptHistoryPrefix)
+	if len(records) != 3 {
+		t.Errorf("records = %q, want the 3 paths under %q", records, recordPrefixes)
 	}
 	if len(other) != 2 {
 		t.Errorf("other = %q, want flake.nix and .prompt-historyrc", other)
+	}
+}
+
+// The unstage and the hint name only the directories that are staged:
+// `git restore --staged` refuses a path that matches nothing.
+func TestRecordDirs(t *testing.T) {
+	var cases = []struct {
+		name    string
+		records []string
+		want    string
+	}{
+		{
+			name: "one directory",
+			records: []string{
+				".prompts/output/a.md",
+				".prompts/history/main/001-a.md",
+			},
+			want: ".prompts",
+		},
+		{
+			name: "both directories, in the order of recordPrefixes",
+			records: []string{
+				".prompt-history/main/001-a.md",
+				".prompts/output/a.md",
+			},
+			want: ".prompts .prompt-history",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var got = strings.Join(recordDirs(c.records), " ")
+			if got != c.want {
+				t.Errorf("recordDirs(%q) = %q, want %q", c.records, got, c.want)
+			}
+		})
 	}
 }

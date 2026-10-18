@@ -58,7 +58,7 @@ func init() {
 		Summary("Rebuild .prompt-history/meta-info.csv from the entries on disk."))
 
 	builder.AddCommand(opts.New(prompthistoryguard.NewPromptHistoryGuardCmd()).Name("prompt-history-guard").
-		Summary("The prek hook: keep .prompt-history/ in commits of its own."))
+		Summary("The prek hook: keep .prompts/ and .prompt-history/ in commits of their own."))
 
 	builder.AddCommand(opts.New(&struct{}{}).Name("tmux").
 		Summary("Make, attach to or kill a tmux session; <tab> lists the sessions.").

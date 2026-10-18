@@ -54,7 +54,7 @@ load.
 ## Prompt output
 
 At the end of each prompt, write a copy of your final reply to
-`docs/output/YYYYMMDD-HHMM__<branch>__<prompt-descr>.md`, relative to this
+`.prompts/output/YYYYMMDD-HHMM__<branch>__<prompt-descr>.md`, relative to this
 repository root.
 
 Do not write the file when the prompt is a commit and no other work is
@@ -64,7 +64,7 @@ usual.
 - `YYYYMMDD-HHMM` is the local time at the end of the prompt. Get it
   with `date +%Y%m%d-%H%M`.
 - `<branch>` is the current branch of the repository that holds
-  `docs/output/`. Get it with `git branch --show-current`. Replace each
+  `.prompts/output/`. Get it with `git branch --show-current`. Replace each
   `/` with `-`, so the name makes no subdirectory.
 - `<prompt-descr>` is the request in 2 to 5 words, in kebab-case. An
   example is `tmux-delete-session`.
@@ -140,7 +140,7 @@ This applies to every `.md` here, this file included.
 | `mdtablefmt/`            | `md-table-fmt`: aligns the tables of a `.md` file                |
 | `prompthistoryrecord/`   | `prompt-history-record`: the Claude Code `Stop` hook             |
 | `prompthistorymeta/`     | `prompt-history-meta`: rebuilds the prompt-history index         |
-| `prompthistoryguard/`    | `prompt-history-guard`: the prek hook over `.prompt-history/`    |
+| `prompthistoryguard/`    | `prompt-history-guard`: the prek hook over `.prompts/`           |
 | `tmux/`                  | `tmux new`, `attach` and `kill-session`, with session completion |
 | `internal/argcomplete`   | completes an argument; opts completes it as a file name          |
 | `internal/exitcode`      | the error that sets the exit code of the process                 |

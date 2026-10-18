@@ -9,9 +9,12 @@
 //
 // [Record] parses the just-finished turn from the transcript and writes:
 //
-//	<repo>/.prompt-history/<branch>/NNN-<description>.md          the turn
-//	<repo>/.prompt-history/<branch>/NNN-<description>/agent_<description>.md
-//	<repo>/.prompt-history/meta-info.csv                          one row per turn and per agent
+//	<repo>/.prompt-history/<branch>/NNN-YYYYMMDD-HHmm-<description>.md   the turn
+//	<repo>/.prompt-history/<branch>/NNN-YYYYMMDD-HHmm-<description>/agent_<description>.md
+//	<repo>/.prompt-history/meta-info.csv                                 one row per turn and per agent
+//
+// NNN is the sequence number on the branch; YYYYMMDD-HHmm is the local time the
+// turn ended.
 //
 // Every turn is recorded, whether or not it changed anything: the history is of
 // the prompts, and a turn that only read or only answered is part of it. What the
