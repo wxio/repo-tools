@@ -4,14 +4,14 @@
 //
 //	repo-tools plan-report --dir docs/features --file-match '^plan\.md$'
 //
-// A task is a list item that starts with a checkbox: `- [ ]` is open and
-// `- [x]` is done. A checkbox inside a fenced code block is an example,
-// not a task, and is not counted.
+// A task is a list item that starts with a checkbox: `- [ ]` is open,
+// `- [~]` is in progress and `- [x]` is done. A checkbox inside a fenced
+// code block is an example, not a task, and is not counted.
 //
 // A feature is a directory. The files that match -file-match in one
 // directory are summed into one row, named by the path of the directory
 // relative to -dir. A file in -dir itself gets a row of its own, named
-// by the file.
+// by the file. The name links to the first file of the row, by name.
 //
 // The table is Markdown, aligned the way md-table-fmt aligns it, so it
 // pastes into a page as it is.
@@ -35,9 +35,10 @@ import (
 const exitRefused exitcode.Code = 2
 
 // task matches a list item that starts with a checkbox. Group 1 is the
-// mark inside the brackets: a space is open, an x is done. A space or
+// mark inside the brackets: a space is open, a tilde is in progress, an
+// x is done. A space or
 // the end of the line must follow the checkbox, as GitHub requires.
-var task = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+\[( |[xX])\](?:\s|$)`)
+var task = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+\[( |~|[xX])\](?:\s|$)`)
 
 // PlanReportCmd is the command line of plan-report.
 type PlanReportCmd struct {
@@ -72,20 +73,23 @@ func (c *PlanReportCmd) Run() error {
 	return nil
 }
 
-// Row is one line of the report: the tasks of one feature.
+// Row is one line of the report: the tasks of one feature. Link is the
+// path of the first file of the feature, relative to the directory read.
 type Row struct {
-	Feature string
-	Open    int
-	Done    int
+	Feature  string
+	Link     string
+	Open     int
+	Progress int
+	Done     int
 }
 
-// Total is the number of tasks, open and done.
+// Total is the number of tasks, open, in progress and done.
 func (r Row) Total() int {
-	return r.Open + r.Done
+	return r.Open + r.Progress + r.Done
 }
 
 // Percent is the share of the tasks that are done, rounded to a whole
-// number. A feature with no task is 0.
+// number. A task in progress is not done. A feature with no task is 0.
 func (r Row) Percent() int {
 	var total = r.Total()
 	if total == 0 {
@@ -96,6 +100,8 @@ func (r Row) Percent() int {
 
 // Report walks dir, reads every file whose name matches match, and sums
 // the tasks per directory. The rows come back sorted by feature.
+// WalkDir reads a directory in name order, so the first file of a
+// feature is the first by name.
 func Report(dir string, match *regexp.Regexp) ([]Row, error) {
 	var (
 		byFeature = map[string]*Row{}
@@ -104,10 +110,12 @@ func Report(dir string, match *regexp.Regexp) ([]Row, error) {
 	)
 	if err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		var (
-			feature string
-			open    int
-			done    int
-			src     []byte
+			feature  string
+			rel      string
+			open     int
+			progress int
+			done     int
+			src      []byte
 		)
 		if err != nil {
 			return err
@@ -115,19 +123,22 @@ func Report(dir string, match *regexp.Regexp) ([]Row, error) {
 		if d.IsDir() || !match.MatchString(d.Name()) {
 			return nil
 		}
-		if feature, err = featureOf(dir, path); err != nil {
+		if rel, err = filepath.Rel(dir, path); err != nil {
 			return err
 		}
+		feature = featureOf(rel)
 		if src, err = os.ReadFile(path); err != nil {
 			return err
 		}
-		open, done = Count(string(src))
+		open, progress, done = Count(string(src))
 		if byFeature[feature] == nil {
 			byFeature[feature] = &Row{
 				Feature: feature,
+				Link:    filepath.ToSlash(rel),
 			}
 		}
 		byFeature[feature].Open += open
+		byFeature[feature].Progress += progress
 		byFeature[feature].Done += done
 		return nil
 	}); err != nil {
@@ -142,25 +153,19 @@ func Report(dir string, match *regexp.Regexp) ([]Row, error) {
 	return rows, nil
 }
 
-// featureOf names the feature a file belongs to: the directory of the
-// file, relative to dir. A file in dir itself is named by the file.
-func featureOf(dir, path string) (string, error) {
-	var (
-		rel string
-		err error
-	)
-	if rel, err = filepath.Rel(dir, path); err != nil {
-		return "", err
-	}
+// featureOf names the feature a file belongs to, from the path of the
+// file relative to dir: the directory of the file. A file in dir itself
+// is named by the file.
+func featureOf(rel string) string {
 	if filepath.Dir(rel) == "." {
-		return filepath.ToSlash(rel), nil
+		return filepath.ToSlash(rel)
 	}
-	return filepath.ToSlash(filepath.Dir(rel)), nil
+	return filepath.ToSlash(filepath.Dir(rel))
 }
 
-// Count counts the open and the done tasks in a Markdown source. A
-// checkbox inside a fenced code block is not counted.
-func Count(src string) (open, done int) {
+// Count counts the open, the in-progress and the done tasks in a
+// Markdown source. A checkbox inside a fenced code block is not counted.
+func Count(src string) (open, progress, done int) {
 	var (
 		sc    = bufio.NewScanner(strings.NewReader(src))
 		fence string
@@ -183,13 +188,16 @@ func Count(src string) (open, done int) {
 		if m = task.FindStringSubmatch(line); m == nil {
 			continue
 		}
-		if m[1] == " " {
+		switch m[1] {
+		case " ":
 			open++
-		} else {
+		case "~":
+			progress++
+		default:
 			done++
 		}
 	}
-	return open, done
+	return open, progress, done
 }
 
 // fenceOf returns the fence a line opens or closes: three or more
@@ -216,14 +224,15 @@ func fenceOf(line string) string {
 	return s[:n]
 }
 
-// Table renders the rows as an aligned Markdown table.
+// Table renders the rows as an aligned Markdown table. A feature is a
+// link to its first file.
 func Table(rows []Row) string {
 	var b strings.Builder
-	b.WriteString("| feature | open | done | total | percentage complete |\n")
-	b.WriteString("|---|---|---|---|---|\n")
+	b.WriteString("| feature | open | in progress | done | total | % complete |\n")
+	b.WriteString("|---|---|---|---|---|---|\n")
 	for _, r := range rows {
-		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d%% |\n",
-			r.Feature, r.Open, r.Done, r.Total(), r.Percent())
+		fmt.Fprintf(&b, "| [%s](./%s) | %d | %d | %d | %d | %d%% |\n",
+			r.Feature, r.Link, r.Open, r.Progress, r.Done, r.Total(), r.Percent())
 	}
 	return mdtable.Formatter{}.Format(b.String()).Text
 }

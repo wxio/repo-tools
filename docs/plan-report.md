@@ -1,7 +1,7 @@
 # plan-report
 
-Counts the open and the done tasks of the Markdown files under a
-directory tree, and prints one table row per feature.
+Counts the open, the in-progress and the done tasks of the Markdown
+files under a directory tree, and prints one table row per feature.
 
 ```sh
 repo-tools plan-report --dir docs/features --file-match '^plan\.md$'
@@ -24,10 +24,10 @@ This command answers "how far along is each feature" in one table,
 without opening a file:
 
 ```markdown
-| feature                | open | done | total | percentage complete |
-|------------------------|------|------|-------|---------------------|
-| 20261009-axis-mutation | 89   | 88   | 177   | 50%                 |
-| 20261011-sheaf-grid    | 3    | 51   | 54    | 94%                 |
+| feature                                                    | open | in progress | done | total | % complete |
+|------------------------------------------------------------|------|-------------|------|-------|------------|
+| [20261009-axis-mutation](./20261009-axis-mutation/plan.md) | 79   | 8           | 119  | 206   | 58%        |
+| [20261011-sheaf-grid](./20261011-sheaf-grid/plan.md)       | 3    | 0           | 51   | 54    | 94%        |
 ```
 
 The table is Markdown, aligned the way `md-table-fmt` aligns it, so it
@@ -36,7 +36,7 @@ pastes into a page as it is.
 ## 2. What counts
 
 A task is a list item that starts with a checkbox. `- [ ]` is open.
-`- [x]` and `- [X]` are done. The item can be nested, and the marker can
+`- [~]` is in progress. `- [x]` and `- [X]` are done. The item can be nested, and the marker can
 be `-`, `*`, `+` or a number. A space must follow the checkbox, as
 GitHub requires, so `[ ]` in running text is not a task.
 
@@ -45,8 +45,14 @@ directory are summed into one row, named by the path of the directory
 relative to `--dir`. A matching file in `--dir` itself gets a row of
 its own, named by the file. The rows are sorted by name.
 
-The percentage is `done / total`, rounded to a whole number. A feature
-with no task is `0%`.
+The name is a link to the first matching file of the feature, by file
+name. The link is relative to `--dir`, so it works in a page in that
+directory. With `-f '^plan.*\.md$'`, `plan-ui.md` comes before
+`plan.md`, because `-` sorts before `.`.
+
+The total is open, in progress and done. `% complete` is
+`done / total`, rounded to a whole number. A task in progress is not
+done. A feature with no task is `0%`.
 
 ## 3. Gotchas
 
@@ -55,6 +61,9 @@ with no task is `0%`.
   at it.
 - **A checkbox inside a fenced code block is not counted.** A page that
   shows an example task list would otherwise report it as work.
+- **The feature cell is long.** The link holds the name twice, so the
+  cell runs past the 70 characters that the Markdown style asks for.
+  The link is worth it.
 - **A directory with no matching file has no row.** `README.md` of a
   features directory lists every feature; this table lists the ones
   with a plan.
@@ -104,6 +113,10 @@ The first count was checked with `grep -c '^\s*- \[ \]'` over the
 same files, which agreed. The first draft counted `- [ ]c` as a task;
 the test caught it, and the pattern now requires a space after the
 checkbox.
+
+**2026-10-20.** Added the `in progress` column and the link on each
+feature. Before it, `- [~]` matched no pattern and was not counted.
+On the sheafdb tree that added 22 tasks to the totals.
 
 **2026-10-19.** The table first went into a page through md-tmpl with
 no `echo`. The hook passed, and the header row sat on the line of the
