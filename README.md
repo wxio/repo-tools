@@ -2,7 +2,7 @@
 
 The small programs the sheafdb repositories run on themselves: a Markdown
 table formatter and a prompt-history recorder for Claude Code. One
-binary, `repo-tools`, with five subcommands. Four libraries. One
+binary, `repo-tools`, with six subcommands. Four libraries. One
 dependency outside the Go standard library: `github.com/jpillora/opts`,
 which parses the command line.
 
@@ -13,6 +13,7 @@ get the same hooks.
 | subcommand              | what it does                                                        |
 |-------------------------|---------------------------------------------------------------------|
 | `md-table-fmt`          | aligns the tables of a `.md` file, so it reads in the raw file      |
+| `plan-report`           | counts the open and done tasks of a feature tree, one row each      |
 | `prompt-history-record` | the Claude Code `Stop` hook: writes an entry per turn and per agent |
 | `prompt-history-meta`   | rebuilds `.prompt-history/meta-info.csv` from the entries on disk   |
 | `prompt-history-guard`  | the prek hook: keeps `.prompts/` in commits of its own              |

@@ -2,6 +2,7 @@
 // on themselves. Each program is a subcommand, in a package of its own:
 //
 //	repo-tools md-table-fmt -n $(git ls-files '*.md')
+//	repo-tools plan-report --dir docs/features --file-match '^plan\.md$'
 //	repo-tools prompt-history-record < hook.json
 //	repo-tools prompt-history-meta -root /path/to/repo
 //	repo-tools prompt-history-guard
@@ -25,6 +26,7 @@ import (
 	"github.com/wxio/repo-tools/internal/argcomplete"
 	"github.com/wxio/repo-tools/internal/exitcode"
 	"github.com/wxio/repo-tools/mdtablefmt"
+	"github.com/wxio/repo-tools/planreport"
 	"github.com/wxio/repo-tools/prompthistoryguard"
 	"github.com/wxio/repo-tools/prompthistorymeta"
 	"github.com/wxio/repo-tools/prompthistoryrecord"
@@ -50,6 +52,9 @@ var (
 func init() {
 	builder.AddCommand(opts.New(mdtablefmt.NewMdTableFmtCmd()).Name("md-table-fmt").
 		Summary("Align the tables in Markdown files."))
+
+	builder.AddCommand(opts.New(planreport.NewPlanReportCmd()).Name("plan-report").
+		Summary("Count the open and done tasks of the Markdown files under a directory, per feature."))
 
 	builder.AddCommand(opts.New(prompthistoryrecord.NewPromptHistoryRecordCmd()).Name("prompt-history-record").
 		Summary("The Claude Code Stop hook: write a prompt-history entry for the last turn."))
