@@ -61,7 +61,42 @@ with no task is `0%`.
 - **A file that cannot be read stops the run** with exit code 2 and the
   path on stderr. Nothing is printed for the files before it.
 
-## 4. Experiences
+## 4. As a prek hook, through md-tmpl
+
+Keep the table in a page, so a reader finds it without running the
+command. [md-tmpl](https://github.com/jpillora/md-tmpl) rewrites the
+block between its tags with the output of the command in the open tag.
+The command runs in the directory of the page, so `-d .` is the page's
+own tree:
+
+```markdown
+<!--tmpl:echo; repo-tools plan-report -d . -f '^plan\.md$' --><!--/tmpl-->
+```
+
+The `echo` puts the table on its own lines. Without it the header row
+shares a line with the open tag, and GitHub reads that line as part of
+the HTML comment.
+
+A prek hook runs md-tmpl whenever a commit holds a `plan.md`. It is a
+fixer: it rewrites the page and fails, so stage the page and commit
+again. `pass_filenames` is off, as the page names the tree it reads.
+
+```toml
+{
+  id = "plan-report",
+  name = "the plan table of docs/features/README.md is current",
+  entry = "md-tmpl -w docs/features/README.md",
+  language = "system",
+  files = "^docs/features/.*/plan\\.md$",
+  pass_filenames = false
+}
+```
+
+md-tmpl is not in nixpkgs. `sheafdb` builds it in its `flake.nix` with
+`buildGoModule`, so it is on `PATH` by name. Try the hook with
+`prek run plan-report --all-files`.
+
+## 5. Experiences
 
 **2026-10-19.** Written against the `docs/features/` tree of
 `sheafdb-group-manager-ux`, where 15 of 21 features had a `plan.md`.
@@ -69,3 +104,7 @@ The first count was checked with `grep -c '^\s*- \[ \]'` over the
 same files, which agreed. The first draft counted `- [ ]c` as a task;
 the test caught it, and the pattern now requires a space after the
 checkbox.
+
+**2026-10-19.** The table first went into a page through md-tmpl with
+no `echo`. The hook passed, and the header row sat on the line of the
+open tag, where GitHub would not render it.
