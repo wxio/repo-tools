@@ -1,12 +1,12 @@
 # repo-tools
 
-The small programs the sheafdb repositories run on themselves. One
+The small programs a repository runs on itself. One
 binary, `repo-tools`, with six subcommands, each in a package of its
 own. Four libraries. One dependency outside the Go standard library:
 `github.com/jpillora/opts`, which parses the command line. Add no other.
 
-Nothing here is about sheafdb. A command reads the repository it is given
-and names no path above it, so any repository can install the flake and
+Nothing here is about one consumer. A command reads the repository it is
+given and names no path above it, so any repository can install the flake and
 get the same hooks.
 
 ## How to work with me
@@ -170,13 +170,34 @@ request.
 
 A command takes the repository as an argument, an environment variable or
 the working directory. It never reads a path above the file it was given,
-and it never names a sheafdb directory.
+and it never names a directory of a consumer.
 
 Check it before a release:
 
 ```sh
 grep -rn '\.\./\.\.' --include='*.go' .     # expect nothing
-grep -rln 'sheafdb/' --include='*.go' .     # expect nothing
 ```
 
-A tool that needs to know about sheafdb belongs in sheafdb.
+A tool that needs to know about one consumer belongs in that consumer.
+
+## Name no external project
+
+Treat this repository as public. Do not name another project in a code
+comment, a doc, a test, a commit message, a prompt output file or code.
+A private project that uses this repository is the main case: do not
+name it, its paths, its files, its commits, its features or its
+numbers.
+
+- Say the use case in general terms, as "a repository that keeps its
+  plans in Markdown", not as the project that does it.
+- Test on inputs in this repository. Do not copy in a result that came
+  from another project.
+- A dependency of this repository can be named where the code depends
+  on it.
+
+Check before a commit. Add the names of the private projects you know
+to the pattern:
+
+```sh
+git grep -n -i -E '<private-project-names>'   # expect nothing
+```
