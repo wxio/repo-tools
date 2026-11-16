@@ -6,6 +6,7 @@
 //	repo-tools prompt-history-record < hook.json
 //	repo-tools prompt-history-meta -root /path/to/repo
 //	repo-tools prompt-history-guard
+//	repo-tools notify < hook.json
 //	repo-tools tmux attach <session>
 //
 // `repo-tools <subcommand> --help` lists the flags of one subcommand. A
@@ -26,6 +27,7 @@ import (
 	"github.com/wxio/repo-tools/internal/argcomplete"
 	"github.com/wxio/repo-tools/internal/exitcode"
 	"github.com/wxio/repo-tools/mdtablefmt"
+	"github.com/wxio/repo-tools/notify"
 	"github.com/wxio/repo-tools/planreport"
 	"github.com/wxio/repo-tools/prompthistoryguard"
 	"github.com/wxio/repo-tools/prompthistorymeta"
@@ -64,6 +66,9 @@ func init() {
 
 	builder.AddCommand(opts.New(prompthistoryguard.NewPromptHistoryGuardCmd()).Name("prompt-history-guard").
 		Summary("The prek hook: keep .prompts/ and .prompt-history/ in commits of their own."))
+
+	builder.AddCommand(opts.New(notify.NewNotifyCmd()).Name("notify").
+		Summary("The Claude Code hook: turn the end of a turn into a chat message."))
 
 	builder.AddCommand(opts.New(&struct{}{}).Name("tmux").
 		Summary("Make, attach to or kill a tmux session; <tab> lists the sessions.").
