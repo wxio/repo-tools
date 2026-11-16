@@ -5,6 +5,16 @@ import (
 	"path/filepath"
 )
 
+// historyDir is the directory, under a repository's root, the entries are
+// written into. It sits beside the prompt output under one `.prompts`, so a
+// repository has one place for what a session produced rather than two
+// top-level directories to explain separately. prompt-history-guard already
+// keeps both halves of `.prompts` out of a commit of anything else.
+//
+// It was `.prompt-history` at the top level. A repository that still holds
+// one has to move it: nothing here reads the old path.
+var historyDir = filepath.Join(".prompts", "history")
+
 // Options says what Record writes.
 type Options struct {
 	// All records every turn of the transcript, not only the last one. It is
@@ -60,7 +70,7 @@ func Record(payload map[string]any, opt Options) {
 // for the CSV: every column it holds is also written into the markdown, so the
 // file can always be reconstructed from the history it indexes.
 func Rebuild(root string) (path string, rows int, err error) {
-	var historyRoot = filepath.Join(repoDir(root), ".prompt-history")
+	var historyRoot = filepath.Join(repoDir(root), historyDir)
 	rows, err = rebuildMeta(historyRoot)
 	return metaPath(historyRoot), rows, err
 }

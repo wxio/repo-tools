@@ -1,0 +1,29 @@
+# Git aliases for this clone. .envrc adds this file to the repository's
+# config as an include.path, so `git config --get-regexp ^alias` lists
+# them.
+[alias]
+	st = status --short --branch
+	co = checkout
+	sw = switch
+	br = branch -vv
+	ci = commit
+	amend = commit --amend --no-edit
+	d = diff
+	ds = diff --staged
+	last = log -1 --stat
+	unstage = restore --staged
+
+	cph = commit -m \"prompt history\"
+
+	ll = log --pretty=format:%C(yellow)%H\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn] --decorate --date=short
+	ls = log --pretty=format:%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn] --decorate --date=format:'%Y%m%d-%H:%M'
+	lg = log --pretty=format:%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn] --decorate --date=format:'%Y%m%d-%H:%M' --graph --all
+	lgd = log --pretty=format:%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn] --decorate --date=format:'%Y%m%d-%H:%M' --graph --all --simplify-by-decoration
+
+	# update worktree pointer without checkout
+	# git symbolic-ref HEAD refs/heads/$BRANCH
+
+	# update where branch points to
+	# git update-ref refs/heads/$BRANCH $COMMIT
+	mainupdateref = update-ref refs/heads/main HEAD
+	movemain = update-ref refs/heads/main origin/main

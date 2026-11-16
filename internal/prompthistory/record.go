@@ -30,7 +30,7 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 	promptEntry := turn[0]
 	info := summarizeTurn(turn)
 	projectDir := repoFor(info, payload)
-	historyRoot := filepath.Join(projectDir, ".prompt-history")
+	historyRoot := filepath.Join(projectDir, historyDir)
 
 	// Post-turn worktree state, rendered into the entry. Our own output is
 	// filtered out so the history never lists itself as a change.
@@ -38,7 +38,7 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 	if !backfill {
 		status := git(projectDir, "-c", "core.quotepath=false", "status", "--porcelain", "--untracked-files=no")
 		for _, line := range strings.Split(status, "\n") {
-			if len(line) > 3 && !strings.Contains(line, ".prompt-history/") {
+			if len(line) > 3 && !strings.Contains(line, filepath.ToSlash(historyDir)+"/") {
 				changed = append(changed, strings.TrimRight(line, " \t\r\n"))
 			}
 		}
@@ -136,7 +136,7 @@ func record(payload map[string]any, turn []map[string]any, backfill, meta bool) 
 	}
 
 	entryName := filepath.Base(fpath)
-	entryRel := filepath.ToSlash(filepath.Join(".prompt-history", branchDirName, entryName))
+	entryRel := filepath.ToSlash(filepath.Join(historyDir, branchDirName, entryName))
 
 	// Agents. Everything an agent did lives in its own transcript, so none of it
 	// is in the numbers above: the entry counts the main thread, each agent gets
