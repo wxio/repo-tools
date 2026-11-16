@@ -47,14 +47,27 @@
 // only the variable, so the setting cannot be repeated in the committed
 // hook line.
 //
+// A transport in the list that this package can send to is sent to with
+// --timeout as its HTTP deadline: "slack" calls internal/notify.SendSlack
+// with the webhook URL in SLACK_WEBHOOK_URL. A transport named but not
+// yet sendable, such as "telegram", and a transport Transports already
+// dropped for being unknown, are both a silent no-op: an unconfigured key
+// is skipped in silence, never an error, so a setup that has only one of
+// several keys still works.
+//
 // It is best-effort, like prompthistoryrecord: any failure is swallowed,
 // a panic with it, and it always exits 0. The hook cannot block a
 // session and cannot fail one. A failure is written to one line of a log
 // file under os.TempDir(), never to standard error, because a hook's
-// standard error reaches the session.
+// standard error reaches the session. A transport's own error, such as
+// Slack's webhook answering a non-2xx status, reaches that same file,
+// but never with the URL or token that named the transport: each
+// transport's own error keeps its secret out, so the log stays safe to
+// read.
 package notify
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -153,6 +166,8 @@ func (c *NotifyCmd) Run() error {
 		donePhases  []string
 		newlyPhases []string
 		phaseHeads  []string
+		ctx         context.Context
+		cancel      context.CancelFunc
 	)
 	// A panic is swallowed too. Run then returns nil and the hook exits 0.
 	defer func() {
@@ -246,10 +261,23 @@ func (c *NotifyCmd) Run() error {
 		return nil
 	}
 
-	// A later change sends line to each of transports: SendSlack for
-	// "slack", with SLACK_WEBHOOK_URL, and SendTelegram for "telegram",
-	// with TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. Neither exists yet,
-	// so a configured transport still sends nothing this phase.
+	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(c.Timeout)*time.Second)
+	defer cancel()
+
+	// A later change adds SendTelegram for "telegram", with
+	// TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID; a name this package does
+	// not yet send stays a silent no-op, the same as an unknown name.
+	for _, name := range transports {
+		switch name {
+		case "slack":
+			if err = internalnotify.SendSlack(ctx, os.Getenv("SLACK_WEBHOOK_URL"), line); err != nil {
+				// err may hold a response status but never the
+				// webhook url (internal/notify/slack.go keeps it
+				// out), so it is safe for logFailure's file.
+				logFailure(fmt.Sprintf("sending to slack: %v", err))
+			}
+		}
+	}
 
 	return nil
 }
