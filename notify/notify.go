@@ -37,6 +37,16 @@
 // read and sweeps whatever else is stale, so the temporary directory
 // does not grow by one file per turn.
 //
+// --mark-start also records which sections of the plan files --plan-glob
+// matches are complete right now, so a normal run can name every section
+// that became complete since. A phase landing is sent whatever
+// --min-seconds says: PRD section 8 calls a phase that lands in 20
+// seconds still news, so ShouldSend's quiet verdict is overridden
+// whenever a phase landed. NOTIFY_PHASES=0 turns the whole phase line
+// off, in both --mark-start and a normal run; there is no flag for it,
+// only the variable, so the setting cannot be repeated in the committed
+// hook line.
+//
 // It is best-effort, like prompthistoryrecord: any failure is swallowed,
 // a panic with it, and it always exits 0. The hook cannot block a
 // session and cannot fail one. A failure is written to one line of a log
@@ -129,15 +139,20 @@ func NewNotifyCmd() *NotifyCmd {
 // the hook that calls it.
 func (c *NotifyCmd) Run() error {
 	var (
-		payload    = map[string]any{}
-		raw        []byte
-		err        error
-		line       string
-		transports []string
-		sessionID  string
-		haveMark   bool
-		mark       internalnotify.Mark
-		elapsed    time.Duration
+		payload     = map[string]any{}
+		raw         []byte
+		err         error
+		line        string
+		transports  []string
+		sessionID   string
+		haveMark    bool
+		mark        internalnotify.Mark
+		elapsed     time.Duration
+		phasesOn    = os.Getenv("NOTIFY_PHASES") != "0"
+		dir         string
+		donePhases  []string
+		newlyPhases []string
+		phaseHeads  []string
 	)
 	// A panic is swallowed too. Run then returns nil and the hook exits 0.
 	defer func() {
@@ -152,6 +167,8 @@ func (c *NotifyCmd) Run() error {
 		}
 	}
 
+	dir, _ = payload["cwd"].(string)
+
 	if c.MarkStart {
 		var ok bool
 		if sessionID, ok = payload["session_id"].(string); !ok || sessionID == "" {
@@ -160,8 +177,12 @@ func (c *NotifyCmd) Run() error {
 			// without it does nothing rather than guess.
 			return nil
 		}
+		if phasesOn {
+			donePhases = internalnotify.DonePhases(dir, c.PlanGlob)
+		}
 		if err = internalnotify.WriteMark(sessionID, internalnotify.Mark{
-			Start: time.Now(),
+			Start:      time.Now(),
+			DonePhases: donePhases,
 		}); err != nil {
 			logFailure(fmt.Sprintf("writing the start mark: %v", err))
 		}
@@ -185,9 +206,18 @@ func (c *NotifyCmd) Run() error {
 	// at all, so its mark is never read and never deleted above.
 	internalnotify.SweepMarks(markSweepAge)
 
+	if phasesOn {
+		donePhases = internalnotify.DonePhases(dir, c.PlanGlob)
+		newlyPhases = internalnotify.NewlyComplete(mark.DonePhases, donePhases)
+		for _, name := range newlyPhases {
+			phaseHeads = append(phaseHeads, internalnotify.PhaseHeading(name))
+		}
+	}
+
 	line = internalnotify.Message(payload, internalnotify.Options{
 		Label:   c.Label,
 		Elapsed: elapsed,
+		Phases:  phaseHeads,
 	})
 
 	if c.DryRun {
@@ -198,9 +228,14 @@ func (c *NotifyCmd) Run() error {
 		return nil
 	}
 
-	if !internalnotify.ShouldSend(elapsed, c.MinSeconds, haveMark) {
+	// A phase landing overrides the quiet rule: PRD section 8 says a
+	// phase that lands in 20 seconds is still news, so len(phaseHeads) > 0
+	// sends even when ShouldSend would otherwise say the turn was too
+	// short.
+	if !internalnotify.ShouldSend(elapsed, c.MinSeconds, haveMark) && len(phaseHeads) == 0 {
 		// The turn was shorter than --min-seconds, and a start mark
-		// said so with confidence. Say nothing, send nothing.
+		// said so with confidence, and no phase landed either. Say
+		// nothing, send nothing.
 		return nil
 	}
 

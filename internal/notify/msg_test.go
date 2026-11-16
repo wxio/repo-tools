@@ -3,6 +3,7 @@ package notify
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
@@ -135,6 +136,28 @@ func TestMessage(t *testing.T) {
 			},
 			want: "[kite] · done",
 		},
+		{
+			name: "one phase landed",
+			payload: map[string]any{
+				"cwd": repoDir,
+			},
+			opts: Options{
+				Label:   "kite",
+				Elapsed: 18*time.Minute + 4*time.Second,
+				Phases:  []string{"Phase 3 — the subcommand"},
+			},
+			want: "[kite] demo-branch · done in 18m04s · Phase 3 — the subcommand",
+		},
+		{
+			name: "no phase landed",
+			payload: map[string]any{
+				"cwd": repoDir,
+			},
+			opts: Options{
+				Label: "kite",
+			},
+			want: "[kite] demo-branch · done",
+		},
 	}
 
 	for _, c := range cases {
@@ -162,6 +185,48 @@ func TestFormatElapsed(t *testing.T) {
 		if got := formatElapsed(c.d); got != c.want {
 			t.Errorf("formatElapsed(%v) = %q, want %q", c.d, got, c.want)
 		}
+	}
+}
+
+func TestPhasesClause(t *testing.T) {
+	var cases = []struct {
+		name  string
+		names []string
+		want  string
+	}{
+		{
+			name:  "none",
+			names: nil,
+			want:  "",
+		},
+		{
+			name:  "one",
+			names: []string{"Phase 3 — the subcommand"},
+			want:  "Phase 3 — the subcommand",
+		},
+		{
+			name:  "three, all shown",
+			names: []string{"Phase 1", "Phase 2", "Phase 3"},
+			want:  "Phase 1, Phase 2, Phase 3",
+		},
+		{
+			name:  "four, the rest collapse",
+			names: []string{"Phase 1", "Phase 2", "Phase 3", "Phase 4"},
+			want:  "Phase 1, Phase 2, Phase 3 and 1 more",
+		},
+		{
+			name:  "a single very long heading is cut",
+			names: []string{strings.Repeat("x", 200)},
+			want:  strings.Repeat("x", maxPhaseChars) + "…",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var got = phasesClause(c.names)
+			if got != c.want {
+				t.Errorf("phasesClause(%#v) = %q, want %q", c.names, got, c.want)
+			}
+		})
 	}
 }
 

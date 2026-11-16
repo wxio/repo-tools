@@ -29,6 +29,12 @@ type Options struct {
 
 	// Elapsed is how long the turn took. Zero omits the "in ..." clause.
 	Elapsed time.Duration
+
+	// Phases names the plan sections that became complete during the
+	// turn, already stripped of the file each came from (PhaseHeading
+	// does that stripping; phase.go is why the names need stripping
+	// before they reach this struct). An empty slice omits the clause.
+	Phases []string
 }
 
 // Message builds one line from the hook's payload and opts: the label, the
@@ -74,8 +80,50 @@ func Message(payload map[string]any, opts Options) (line string) {
 	}
 	parts = append(parts, tail)
 
+	if phase := phasesClause(opts.Phases); phase != "" {
+		parts = append(parts, phase)
+	}
+
 	line = strings.Join(parts, " · ")
 	return line
+}
+
+// maxPhaseItems and maxPhaseChars bound the clause phasesClause renders,
+// so a turn that completes many phases at once, or one whose heading runs
+// long, cannot make the line unreadable or unbounded. A Slack or a
+// Telegram message is read on a phone; a one-line summary that grows past
+// a phone's width stops being one line in practice.
+const (
+	maxPhaseItems = 3
+	maxPhaseChars = 160
+)
+
+// phasesClause renders the phase part of the line: the headings in names,
+// joined, and capped. Three or fewer are listed in full; more collapse
+// the rest into "and N more". Either form is then cut to maxPhaseChars,
+// with "…" marking the cut.
+func phasesClause(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+
+	var (
+		shown = names
+		extra = 0
+		text  string
+	)
+	if len(shown) > maxPhaseItems {
+		extra = len(shown) - maxPhaseItems
+		shown = shown[:maxPhaseItems]
+	}
+	text = strings.Join(shown, ", ")
+	if extra > 0 {
+		text = text + fmt.Sprintf(" and %d more", extra)
+	}
+	if runes := []rune(text); len(runes) > maxPhaseChars {
+		text = string(runes[:maxPhaseChars]) + "…"
+	}
+	return text
 }
 
 // branchOf runs `git branch --show-current` in the payload's cwd. A missing
