@@ -14,7 +14,7 @@
 //	--mark-start    —                    write the start mark and exit; for UserPromptSubmit
 //	--label         NOTIFY_LABEL         the name shown in the chat
 //	--plan-glob     NOTIFY_PLAN_GLOB     which files are plans, for the phase line
-//	--dry-run       —                    build the message, send nothing, print it
+//	--dry-run       —                    build the message, print it, ignoring --min-seconds
 //	--timeout       —                    the HTTP timeout, in seconds; 10
 //
 // --dry-run is how the early phases of this command are built: it builds
@@ -23,8 +23,19 @@
 // and before any key does. --mark-start writes the hook's session_id and
 // the current time to internal/notify's start mark, then returns: it does
 // nothing else, and a payload with no session_id makes it do nothing at
-// all. A later change reads that mark back, to stay quiet on a short
-// turn, and to delete and sweep it.
+// all.
+//
+// A normal run (anything but --mark-start) reads that mark back, by the
+// payload's session_id, to get how long the turn took. internal/notify's
+// ShouldSend then decides whether the turn is worth a message: shorter
+// than --min-seconds and quiet, at or above it and worth sending, and a
+// missing mark always worth sending, because a session that began before
+// the hook was installed cannot be told apart from a short one any other
+// way. --dry-run ignores that decision and always prints the line, so a
+// person can see what would have gone out even on a turn the quiet rule
+// would otherwise drop. Either way, a normal run deletes the mark it
+// read and sweeps whatever else is stale, so the temporary directory
+// does not grow by one file per turn.
 //
 // It is best-effort, like prompthistoryrecord: any failure is swallowed,
 // a panic with it, and it always exits 0. The hook cannot block a
@@ -56,6 +67,12 @@ const defaultMinSeconds = 60
 // and set the variable.
 const defaultPlanGlob = "docs/features/*/plan.md"
 
+// markSweepAge is how old a start mark has to be before a normal run
+// removes it as stale, on the suspicion that its session never reached
+// its Stop hook. A run that does find and read its own mark deletes that
+// one directly; this sweep is only for the ones left behind.
+const markSweepAge = 24 * time.Hour
+
 // logPath is where a failure is written: one line, appended, under the
 // system temporary directory, beside the per-session start marks a later
 // change adds there. Never standard error — a hook's standard error
@@ -71,7 +88,7 @@ type NotifyCmd struct {
 	MarkStart  bool   `help:"write the start mark and exit; for UserPromptSubmit"`
 	Label      string `help:"the name shown in the chat"`
 	PlanGlob   string `help:"which files are plans, for the phase line"`
-	DryRun     bool   `help:"build the message, send nothing, print it"`
+	DryRun     bool   `help:"build the message, print it, ignoring --min-seconds"`
 	Timeout    int    `help:"the HTTP timeout, in seconds"`
 }
 
@@ -117,6 +134,10 @@ func (c *NotifyCmd) Run() error {
 		err        error
 		line       string
 		transports []string
+		sessionID  string
+		haveMark   bool
+		mark       internalnotify.Mark
+		elapsed    time.Duration
 	)
 	// A panic is swallowed too. Run then returns nil and the hook exits 0.
 	defer func() {
@@ -132,10 +153,7 @@ func (c *NotifyCmd) Run() error {
 	}
 
 	if c.MarkStart {
-		var (
-			sessionID string
-			ok        bool
-		)
+		var ok bool
 		if sessionID, ok = payload["session_id"].(string); !ok || sessionID == "" {
 			// No session_id, nothing to key the mark on. The
 			// UserPromptSubmit hook always sends one; a payload
@@ -150,12 +168,39 @@ func (c *NotifyCmd) Run() error {
 		return nil
 	}
 
+	// A normal run: read the mark the UserPromptSubmit hook wrote for
+	// this session, so the message and the quiet rule below both have
+	// an elapsed time to work from. haveMark stays false, and elapsed
+	// stays zero, when there is no session_id or no mark for it —
+	// ShouldSend treats that the same as a long turn, not a short one.
+	if sessionID, _ = payload["session_id"].(string); sessionID != "" {
+		if mark, haveMark = internalnotify.ReadMark(sessionID); haveMark {
+			elapsed = time.Since(mark.Start)
+		}
+		// The mark has done its job. Remove it so the temporary
+		// directory does not gain one file per turn.
+		internalnotify.DeleteMark(sessionID)
+	}
+	// Best-effort housekeeping for a session whose Stop hook never ran
+	// at all, so its mark is never read and never deleted above.
+	internalnotify.SweepMarks(markSweepAge)
+
 	line = internalnotify.Message(payload, internalnotify.Options{
-		Label: c.Label,
+		Label:   c.Label,
+		Elapsed: elapsed,
 	})
 
 	if c.DryRun {
+		// Always prints, whatever ShouldSend would say: --dry-run
+		// exists so a person can see the message a quiet turn would
+		// otherwise drop.
 		fmt.Println(line)
+		return nil
+	}
+
+	if !internalnotify.ShouldSend(elapsed, c.MinSeconds, haveMark) {
+		// The turn was shorter than --min-seconds, and a start mark
+		// said so with confidence. Say nothing, send nothing.
 		return nil
 	}
 
