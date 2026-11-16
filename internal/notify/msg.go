@@ -12,6 +12,7 @@ package notify
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -94,10 +95,29 @@ func branchOf(payload map[string]any) string {
 
 	cmd = exec.Command("git", "branch", "--show-current")
 	cmd.Dir = dir
+	cmd.Env = withoutGitEnv(os.Environ())
 	if out, err = cmd.Output(); err != nil {
 		return ""
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// withoutGitEnv drops every GIT_* variable from env.
+//
+// git exports GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE to the commands it
+// runs, and they outrank cmd.Dir. A process started from a git hook inherits
+// them, so `git branch --show-current` would answer for the hook's own
+// repository and not for the directory it was asked about. Dropping them
+// leaves cmd.Dir as the only thing that decides.
+func withoutGitEnv(env []string) []string {
+	var kept = make([]string, 0, len(env))
+	for _, kv := range env {
+		if strings.HasPrefix(kv, "GIT_") {
+			continue
+		}
+		kept = append(kept, kv)
+	}
+	return kept
 }
 
 // outcomeOf is "failed" when the payload names a StopFailure event or carries

@@ -20,8 +20,11 @@
 // --dry-run is how the early phases of this command are built: it builds
 // the whole message and prints it instead of sending it, so the message
 // and the quiet rule are finished and tested before any transport exists
-// and before any key does. --mark-start is accepted here and does
-// nothing yet; a later change writes the start mark it names.
+// and before any key does. --mark-start writes the hook's session_id and
+// the current time to internal/notify's start mark, then returns: it does
+// nothing else, and a payload with no session_id makes it do nothing at
+// all. A later change reads that mark back, to stay quiet on a short
+// turn, and to delete and sweep it.
 //
 // It is best-effort, like prompthistoryrecord: any failure is swallowed,
 // a panic with it, and it always exits 0. The hook cannot block a
@@ -120,19 +123,31 @@ func (c *NotifyCmd) Run() error {
 		_ = recover()
 	}()
 
-	if c.MarkStart {
-		// A later change writes the start mark here, keyed by the
-		// payload's session_id, and returns. Until then --mark-start
-		// is accepted and does nothing.
-		return nil
-	}
-
 	raw, _ = io.ReadAll(os.Stdin)
 	if strings.TrimSpace(string(raw)) != "" {
 		if err = json.Unmarshal(raw, &payload); err != nil {
 			logFailure(fmt.Sprintf("reading the hook's JSON: %v", err))
 			return nil
 		}
+	}
+
+	if c.MarkStart {
+		var (
+			sessionID string
+			ok        bool
+		)
+		if sessionID, ok = payload["session_id"].(string); !ok || sessionID == "" {
+			// No session_id, nothing to key the mark on. The
+			// UserPromptSubmit hook always sends one; a payload
+			// without it does nothing rather than guess.
+			return nil
+		}
+		if err = internalnotify.WriteMark(sessionID, internalnotify.Mark{
+			Start: time.Now(),
+		}); err != nil {
+			logFailure(fmt.Sprintf("writing the start mark: %v", err))
+		}
+		return nil
 	}
 
 	line = internalnotify.Message(payload, internalnotify.Options{

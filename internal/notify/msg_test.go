@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -9,6 +10,11 @@ import (
 // gitInitBranch makes an empty repository in dir, on the named branch, so
 // branchOf has something real to read. A fresh repository's HEAD already
 // names a branch, so this needs no commit.
+//
+// It scrubs GIT_* from the environment for the same reason branchOf does.
+// These tests run from a git hook in this repository, and the hook's GIT_DIR
+// outranks cmd.Dir: without the scrub, `git init` reports that core.bare and
+// core.worktree do not make sense, and the test fails only under the hook.
 func gitInitBranch(t *testing.T, dir, branch string) {
 	t.Helper()
 
@@ -19,9 +25,23 @@ func gitInitBranch(t *testing.T, dir, branch string) {
 	for _, args := range cmds {
 		var cmd = exec.Command("git", args...)
 		cmd.Dir = dir
+		cmd.Env = withoutGitEnv(os.Environ())
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
+	}
+}
+
+// TestWithoutGitEnv is the unit of the scrub above.
+func TestWithoutGitEnv(t *testing.T) {
+	var got = withoutGitEnv([]string{
+		"PATH=/usr/bin",
+		"GIT_DIR=/somewhere/.git",
+		"GIT_WORK_TREE=/somewhere",
+		"HOME=/home/someone",
+	})
+	if len(got) != 2 || got[0] != "PATH=/usr/bin" || got[1] != "HOME=/home/someone" {
+		t.Fatalf("withoutGitEnv kept %q", got)
 	}
 }
 
