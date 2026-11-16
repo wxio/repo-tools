@@ -29,16 +29,11 @@ import (
 
 	"github.com/wxio/repo-tools/internal/exitcode"
 	"github.com/wxio/repo-tools/internal/mdtable"
+	"github.com/wxio/repo-tools/internal/mdtask"
 )
 
 // exitRefused says the program could not read what it was given.
 const exitRefused exitcode.Code = 2
-
-// task matches a list item that starts with a checkbox. Group 1 is the
-// mark inside the brackets: a space is open, a tilde is in progress, an
-// x is done. A space or
-// the end of the line must follow the checkbox, as GitHub requires.
-var task = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+\[( |~|[xX])\](?:\s|$)`)
 
 // PlanReportCmd is the command line of plan-report.
 type PlanReportCmd struct {
@@ -167,9 +162,10 @@ func featureOf(rel string) string {
 // Markdown source. A checkbox inside a fenced code block is not counted.
 func Count(src string) (open, progress, done int) {
 	var (
-		sc    = bufio.NewScanner(strings.NewReader(src))
-		fence string
-		m     []string
+		sc     = bufio.NewScanner(strings.NewReader(src))
+		fence  string
+		state  mdtask.State
+		isTask bool
 	)
 	sc.Buffer(make([]byte, 0, 64*1024), 1<<20)
 	for sc.Scan() {
@@ -185,13 +181,13 @@ func Count(src string) (open, progress, done int) {
 		if fence != "" {
 			continue
 		}
-		if m = task.FindStringSubmatch(line); m == nil {
+		if state, isTask = mdtask.Parse(line); !isTask {
 			continue
 		}
-		switch m[1] {
-		case " ":
+		switch state {
+		case mdtask.Open:
 			open++
-		case "~":
+		case mdtask.Doing:
 			progress++
 		default:
 			done++
