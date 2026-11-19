@@ -60,7 +60,10 @@ func NewFeaturesCmd() *FeaturesCmd {
 }
 
 // loop is what the bare command prints: the subcommands in the order a
-// feature moves through them.
+// feature moves through them, the roles of the standing trees, where
+// each command runs, and the steps between the commands that stay the
+// user's own. The commands are half the workflow; a user who reads only
+// the subcommand list still does not know which tree to stand in.
 const loop = `The feature loop, in the order a feature moves:
 
   new <name>                reserve the next feature number on the trunk
@@ -71,6 +74,36 @@ const loop = `The feature loop, in the order a feature moves:
   verify [branch]           run the verify checks there; the second stage
   land <branch>             fast-forward the trunk, tag, push, park, delete
   finish <branch>           merge, verify and land; stop at the first refusal
+
+The trees stand; the branches move through them. One tree has one role,
+and an implementation tree holds one feature at a time:
+
+  the trunk's checkout    the trunk      reserve a number; land moves it
+  the spec tree           the spec       the PRD, the plan, the docs
+  an implementation tree  the feature's  one feature, attach to land
+  the merge tree          detached       the finish only; do not edit
+
+Run each command where it belongs:
+
+  new, attach, land, finish  any tree: each finds the tree it needs
+  refresh                    the attached tree, on the branch, committed
+  scenario                   the current tree
+
+The steps between the commands are yours:
+
+  1. Run new, then write the PRD and the plan in the spec tree.
+  2. Commit the spec on the spec branch. attach starts the branch there,
+     so the spec travels with the feature and lands with it.
+  3. Run attach, then implement in that tree. Run refresh after each
+     chunk: it brings the trunk in early, so the merge holds no surprise.
+  4. Run finish, then merge the trunk into the spec branch. The next
+     feature branch then starts near the trunk's tip.
+
+A fix skips the spec, not the merge. A branch under the fix prefix needs
+no number and no feature directory, and starts at the trunk:
+
+  attach fix-<descr>
+  finish fix-<descr> --no-scenario "<reason>"
 
 The repository describes itself in ` + ConfigName + ` at its root;
 the commands find it by walking up from the working directory.

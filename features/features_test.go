@@ -1,6 +1,7 @@
 package features
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,6 +11,60 @@ import (
 
 	"github.com/wxio/repo-tools/internal/exitcode"
 )
+
+// TestBareCommandPrintsTheWorkflow holds the bare command to the whole
+// workflow, not the subcommand list alone. The list says what to run;
+// the rest says which tree to stand in, and what the user does between
+// the commands. A reader who gets only the list still cannot start.
+func TestBareCommandPrintsTheWorkflow(t *testing.T) {
+	var (
+		out bytes.Buffer
+		c   = &FeaturesCmd{
+			out: &out,
+		}
+		got string
+		err error
+	)
+	if err = c.Run(); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	got = out.String()
+
+	// Every subcommand, so the printed list cannot drift from the family.
+	for _, name := range []string{
+		"new", "attach", "scenario", "refresh",
+		"merge", "verify", "land", "finish",
+	} {
+		if !strings.Contains(got, "\n  "+name) {
+			t.Errorf("the loop does not name the subcommand %s", name)
+		}
+	}
+
+	// The workflow around the commands: the roles of the trees, where
+	// each command runs, the steps that stay the user's, and the fix lane.
+	for _, want := range []string{
+		"The trees stand",
+		"an implementation tree",
+		"the merge tree",
+		"Run each command where it belongs",
+		"The steps between the commands are yours",
+		"A fix skips the spec",
+		ConfigName,
+		"--dry-run",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the loop does not carry %q", want)
+		}
+	}
+
+	// It is terminal help, and two blocks are aligned by hand. A line
+	// that wraps breaks the alignment it was padded for.
+	for _, line := range strings.Split(got, "\n") {
+		if len(line) > 80 {
+			t.Errorf("a line of %d columns: %q", len(line), line)
+		}
+	}
+}
 
 func TestLoadConfigWalksUp(t *testing.T) {
 	var (

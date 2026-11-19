@@ -7,7 +7,7 @@ tab-complete.
 ```sh
 repo-tools --install                        # the shell completion, once
 
-repo-tools features                         # the loop, one line per subcommand
+repo-tools features                         # the workflow: the loop, the trees, the steps
 repo-tools features new widget              # reserve the next number on the trunk
 repo-tools features attach <tab>            # the features, then the open branches
 repo-tools features attach widget <tab>     # the implementation trees, free first
@@ -28,9 +28,12 @@ repo-tools features finish widget --dry-run # the would: lines; nothing changes
 | `land <branch>`         | fast-forwards the trunk, tags, pushes, parks the tree, deletes   |
 | `finish <branch>`       | merge, then verify, then land, stopping at the first refusal     |
 
-Bare `repo-tools features` prints the loop and exits 0. A subcommand
-without its required argument prints its own short reference — the
-usage, the arguments, the defaults, the refusals — and exits non-zero.
+Bare `repo-tools features` prints the workflow and exits 0: the loop
+above, the roles of the standing trees, where each command runs, the
+steps between the commands, and the fix lane. Read it first; section 2
+below is the same ground at length. A subcommand without its required
+argument prints its own short reference — the usage, the arguments, the
+defaults, the refusals — and exits non-zero.
 
 ## 1. The configuration file
 
@@ -89,7 +92,45 @@ element is the role, or ends in `-<role>`. So `work-alpha` is the
 merge tree yet, `merge` adds one, detached, at the trunk, beside an
 implementation tree and named by the same rule.
 
-## 2. The loop
+## 2. The places and the steps between
+
+The trees stand; the branches move through them. One tree has one role,
+and an implementation tree holds one feature at a time. The config names
+the roles; `git worktree list` finds the trees.
+
+| tree                   | its branch    | who works there                    |
+|------------------------|---------------|------------------------------------|
+| the trunk's checkout   | the trunk     | reserve a number; `land` moves it  |
+| the spec tree          | the spec      | the PRD, the plan, the docs        |
+| an implementation tree | the feature's | one feature, `attach` to `land`    |
+| the merge tree         | detached      | the finish only; do not edit there |
+
+A command finds the tree it needs, so `new`, `attach`, `land` and
+`finish` run from any tree. `refresh` is the exception: it runs in the
+attached tree, on the branch, with every change committed. `scenario`
+writes in the current tree.
+
+The commands are half the workflow. The steps between them stay the
+user's own:
+
+1. Run `new`, then write the PRD and the plan in the spec tree.
+2. Commit the spec on the spec branch. `attach` starts the branch there,
+   so the spec travels with the feature and lands with it.
+3. Run `attach`, then implement in that tree. Run `refresh` after each
+   chunk: it brings the trunk in early, so the merge holds no surprise.
+4. Run `finish`, then merge the trunk into the spec branch. The next
+   feature branch then starts near the trunk's tip.
+
+A fix skips the spec, not the merge. A branch under `fixPrefix` needs no
+number and no feature directory, and starts at the trunk. It takes the
+same gates and the same tag:
+
+```sh
+repo-tools features attach fix-<descr>
+repo-tools features finish fix-<descr> --no-scenario "<reason>"
+```
+
+## 3. The loop
 
 1. `new <name>` reserves the next number in the trunk's checkout: the
    `prd.md` stub, the README row, the todo scenario, one commit, one
@@ -120,7 +161,7 @@ implementation tree and named by the same rule.
 7. `finish <branch>` is 4, 5 and 6 in order, stopping at the first
    refusal.
 
-## 3. The dry run
+## 4. The dry run
 
 Every mutating subcommand takes `--dry-run`. It prints each mutating
 step prefixed `would:`, runs the refusal checks for real, changes
@@ -130,7 +171,7 @@ the conflicting files with `git merge-tree`, which touches no tree.
 `finish --dry-run` dry-runs the merge stage, then names the other two:
 a dry merge records no state, so their own dry runs would refuse.
 
-## 4. How the arguments complete
+## 5. How the arguments complete
 
 opts v1.8.0 completes every positional argument as a file name, so
 `main` answers the shell first, through `internal/argcomplete`:
@@ -146,7 +187,7 @@ opts v1.8.0 completes every positional argument as a file name, so
 - `new <tab>` completes nothing: the name is new.
 - Flags complete through opts, as everywhere else.
 
-## 5. Gotchas
+## 6. Gotchas
 
 - **The pair check runs in an implementation tree only.** `refresh`
   refuses when the tree's pair names another feature than the branch.
@@ -163,7 +204,7 @@ opts v1.8.0 completes every positional argument as a file name, so
 - **The scenario todo marker is the literal `"todo"`.** A scenario
   counts as a todo while its content holds it, quotes included.
 
-## 6. A worked example
+## 7. A worked example
 
 A repository `work` with the trees `work`, `work-alpha`, `work-beta`
 and `work-merge` beside each other, the trunk `main` and the spec
@@ -178,7 +219,7 @@ repo-tools features refresh               # merge main in, run the branch gate
 repo-tools features finish widget         # merge, verify, land; tag merged/widget-YYYYMMDD
 ```
 
-## 7. Experiences
+## 8. Experiences
 
 **2026-11-19.** Written, with the loop checked end to end on a
 fixture repository with a bare origin: new, attach, refresh, the
