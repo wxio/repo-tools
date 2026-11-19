@@ -14,6 +14,21 @@ func (n names) Complete(string) []string {
 	return n
 }
 
+// positional is an ArgsCompleter that offers one fixed list per argument
+// position, so the test needs no repository.
+type positional [][]string
+
+func (p positional) Complete(last string) []string {
+	return p.CompleteArgs(nil, last)
+}
+
+func (p positional) CompleteArgs(prior []string, last string) []string {
+	if len(prior) >= len(p) {
+		return nil
+	}
+	return p[len(prior)]
+}
+
 func TestComplete(t *testing.T) {
 	var (
 		completers = map[string]opts.Completer{
@@ -21,6 +36,16 @@ func TestComplete(t *testing.T) {
 				"main",
 				"main-review",
 				"notes",
+			},
+			"features attach": positional{
+				{
+					"axis",
+					"axle",
+				},
+				{
+					"beta",
+					"gamma",
+				},
 			},
 		}
 		cases = []struct {
@@ -64,6 +89,39 @@ func TestComplete(t *testing.T) {
 			},
 			{
 				line: "repo-tools tmux attach main ",
+				want: nil,
+				ok:   false,
+			},
+			{
+				line: "repo-tools features attach ax",
+				want: []string{
+					"axis",
+					"axle",
+				},
+				ok: true,
+			},
+			{
+				line: "repo-tools features attach axis ",
+				want: []string{
+					"beta",
+					"gamma",
+				},
+				ok: true,
+			},
+			{
+				line: "repo-tools features attach --dry-run axis g",
+				want: []string{
+					"gamma",
+				},
+				ok: true,
+			},
+			{
+				line: "repo-tools features attach axis beta ",
+				want: nil,
+				ok:   true,
+			},
+			{
+				line: "repo-tools features attach --d",
 				want: nil,
 				ok:   false,
 			},

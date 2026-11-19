@@ -1,5 +1,5 @@
-// Command repo-tools holds the small programs the sheafdb repositories run
-// on themselves. Each program is a subcommand, in a package of its own:
+// Command repo-tools holds the small programs a repository runs on
+// itself. Each program is a subcommand, in a package of its own:
 //
 //	repo-tools md-table-fmt -n $(git ls-files '*.md')
 //	repo-tools plan-report --dir docs/features --file-match '^plan\.md$'
@@ -8,6 +8,7 @@
 //	repo-tools prompt-history-guard
 //	repo-tools notify < hook.json
 //	repo-tools tmux attach <session>
+//	repo-tools features attach <feature> [tree]
 //
 // `repo-tools <subcommand> --help` lists the flags of one subcommand. A
 // flag takes one dash or two: `-n` and `--n` are the same flag.
@@ -24,6 +25,7 @@ import (
 	"os"
 
 	"github.com/jpillora/opts"
+	"github.com/wxio/repo-tools/features"
 	"github.com/wxio/repo-tools/internal/argcomplete"
 	"github.com/wxio/repo-tools/internal/exitcode"
 	"github.com/wxio/repo-tools/mdtablefmt"
@@ -39,15 +41,20 @@ var (
 	rootCmd = &struct{}{} // empty root — no top-level flags
 	builder = opts.New(rootCmd).
 		Name("repo-tools").
-		Summary("The small programs the sheafdb repositories run on themselves.").
+		Summary("The small programs a repository runs on itself.").
 		EmbedGlobalFlagSet().
 		Complete()
 
-	// argCompleters completes the first argument of these subcommands.
+	// argCompleters completes the arguments of these subcommands.
 	// opts completes an argument as a file name, so main answers first.
 	argCompleters = map[string]opts.Completer{
 		"tmux attach":       new(tmux.Session),
 		"tmux kill-session": new(tmux.Session),
+		"features attach":   new(features.AttachArgs),
+		"features merge":    new(features.Branch),
+		"features verify":   new(features.Branch),
+		"features land":     new(features.Branch),
+		"features finish":   new(features.Branch),
 	}
 )
 
@@ -69,6 +76,25 @@ func init() {
 
 	builder.AddCommand(opts.New(notify.NewNotifyCmd()).Name("notify").
 		Summary("The Claude Code hook: turn the end of a turn into a chat message."))
+
+	builder.AddCommand(opts.New(features.NewFeaturesCmd()).Name("features").
+		Summary("The feature loop over the standing worktrees; bare, it prints the loop.").
+		AddCommand(opts.New(features.NewNewCmd()).Name("new").
+			Summary("Reserve the next feature number on the trunk, and push it.")).
+		AddCommand(opts.New(features.NewAttachCmd()).Name("attach").
+			Summary("Place a feature on a free implementation tree.")).
+		AddCommand(opts.New(features.NewScenarioCmd()).Name("scenario").
+			Summary("Write a feature's todo scenario in the current tree.")).
+		AddCommand(opts.New(features.NewRefreshCmd()).Name("refresh").
+			Summary("Merge the trunk into the branch, then run the branch gate.")).
+		AddCommand(opts.New(features.NewMergeCmd()).Name("merge").
+			Summary("Merge a branch in the merge tree; the first finish stage.")).
+		AddCommand(opts.New(features.NewVerifyCmd()).Name("verify").
+			Summary("Run the verify checks in the merge tree; the second stage.")).
+		AddCommand(opts.New(features.NewLandCmd()).Name("land").
+			Summary("Fast-forward the trunk, tag, push, park, delete; the third stage.")).
+		AddCommand(opts.New(features.NewFinishCmd()).Name("finish").
+			Summary("Merge, verify and land, stopping at the first refusal.")))
 
 	builder.AddCommand(opts.New(&struct{}{}).Name("tmux").
 		Summary("Make, attach to or kill a tmux session; <tab> lists the sessions.").

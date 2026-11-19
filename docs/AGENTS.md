@@ -26,4 +26,5 @@ directory's table below.
 | [plan-report.md](plan-report.md)       | counts the open and done tasks per feature    |
 | [prompt-history.md](prompt-history.md) | records a Claude Code session, and polices it |
 | [tmux.md](tmux.md)                     | makes, attaches to or kills a tmux session    |
-| [go-style.md](go-style.md)             | the Go conventions, shared with `sheafdb`     |
+| [features.md](features.md)             | drives a feature branch across the worktrees  |
+| [go-style.md](go-style.md)             | the Go conventions, shared with the consumers |

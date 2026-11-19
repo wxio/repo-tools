@@ -1,7 +1,7 @@
 # repo-tools
 
 The small programs a repository runs on itself. One
-binary, `repo-tools`, with six subcommands, each in a package of its
+binary, `repo-tools`, with eight subcommands, each in a package of its
 own. Four libraries. One dependency outside the Go standard library:
 `github.com/jpillora/opts`, which parses the command line. Add no other.
 
@@ -143,6 +143,7 @@ This applies to every `.md` here, this file included.
 | `prompthistorymeta/`     | `prompt-history-meta`: rebuilds the prompt-history index         |
 | `prompthistoryguard/`    | `prompt-history-guard`: the prek hook over `.prompts/`           |
 | `tmux/`                  | `tmux new`, `attach` and `kill-session`, with session completion |
+| `features/`              | the feature loop: new, attach, refresh, merge, verify, land      |
 | `internal/argcomplete`   | completes an argument; opts completes it as a file name          |
 | `internal/exitcode`      | the error that sets the exit code of the process                 |
 | `internal/mdtable`       | the library behind `md-table-fmt`                                |

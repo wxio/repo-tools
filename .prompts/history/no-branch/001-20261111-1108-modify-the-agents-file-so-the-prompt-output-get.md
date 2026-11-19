@@ -10,23 +10,23 @@
 
 ## Phases
 
-| # | Phase | Duration | Assistant steps | Tool calls | Output tokens |
-|---|-------|---------:|----------------:|-----------:|--------------:|
-| 1 | Executing | 2m 16s | 13 | 13 | 8,340 |
-| 2 | Editing | 3s | 1 | 1 | 391 |
-| 3 | Researching | 5s | 1 | 1 | 103 |
-| 4 | Editing | 8s | 1 | 1 | 386 |
-| 5 | Executing | 3m 32s | 7 | 7 | 3,000 |
-| 6 | Editing | 12s | 1 | 1 | 640 |
-| 7 | Executing | 4s | 1 | 1 | 194 |
-| 8 | Editing | 3s | 1 | 1 | 207 |
-| 9 | Executing | 5s | 1 | 1 | 93 |
-| 10 | Editing | 3s | 1 | 1 | 324 |
-| 11 | Executing | 21s | 3 | 3 | 1,032 |
-| 12 | Editing | 3s | 1 | 1 | 310 |
-| 13 | Executing | 3m 26s | 9 | 9 | 4,219 |
-| 14 | Thinking | 1s | 1 | 0 | 943 |
-| | **Total** | **10m 43s** | **42** | **41** | **20,182** |
+| #   | Phase       | Duration    | Assistant steps | Tool calls | Output tokens |
+|-----|-------------|------------:|----------------:|-----------:|--------------:|
+| 1   | Executing   | 2m 16s      | 13              | 13         | 8,340         |
+| 2   | Editing     | 3s          | 1               | 1          | 391           |
+| 3   | Researching | 5s          | 1               | 1          | 103           |
+| 4   | Editing     | 8s          | 1               | 1          | 386           |
+| 5   | Executing   | 3m 32s      | 7               | 7          | 3,000         |
+| 6   | Editing     | 12s         | 1               | 1          | 640           |
+| 7   | Executing   | 4s          | 1               | 1          | 194           |
+| 8   | Editing     | 3s          | 1               | 1          | 207           |
+| 9   | Executing   | 5s          | 1               | 1          | 93            |
+| 10  | Editing     | 3s          | 1               | 1          | 324           |
+| 11  | Executing   | 21s         | 3               | 3          | 1,032         |
+| 12  | Editing     | 3s          | 1               | 1          | 310           |
+| 13  | Executing   | 3m 26s      | 9               | 9          | 4,219         |
+| 14  | Thinking    | 1s          | 1               | 0          | 943           |
+|     | **Total**   | **10m 43s** | **42**          | **41**     | **20,182**    |
 
 ## Prompt
 
@@ -90,10 +90,10 @@ So moving those prompt outputs in would be **the first** such breach, not an add
 
 **The blocker.** Five of the seven name a closed-source project:
 
-| hits | file |
-|---|---|
-| 16 | `20261110-0801__main__adl-go-stagecraft-setup.md` |
-| 2 | `20261110-1427__main__implement-phases-0-to-4.md` |
+| hits   | file                                                                                          |
+|--------|-----------------------------------------------------------------------------------------------|
+| 16     | `20261110-0801__main__adl-go-stagecraft-setup.md`                                             |
+| 2      | `20261110-1427__main__implement-phases-0-to-4.md`                                             |
 | 1 each | `…remove-sheaf-mentions.md`, `…implement-port-adlc-phases.md`, `…implement-007-goadlc-cli.md` |
 
 The last four are mild: each is a report *flagging* the naming problem, so the mention is the grep pattern or a filename. The first is not mild — it's a whole reply about setting up that tool for this repo, and it names the project throughout.

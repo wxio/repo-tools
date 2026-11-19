@@ -1,10 +1,10 @@
 `plan-report` now has an `in progress` column for `[~]`, a `% complete` header, and a link on each feature name. The tests and `go vet` pass. The change is in the working tree, not staged.
 
-| file                            | what changed                                                      |
-|---------------------------------|-------------------------------------------------------------------|
-| `planreport/planreport.go`      | counts `[~]`; `Row` has `Progress` and `Link`; new columns        |
-| `planreport/planreport_test.go` | cases for `[~]`, the links, the new table                         |
-| `docs/plan-report.md`           | the new columns, the link rule, a gotcha, an experience           |
+| file                            | what changed                                               |
+|---------------------------------|------------------------------------------------------------|
+| `planreport/planreport.go`      | counts `[~]`; `Row` has `Progress` and `Link`; new columns |
+| `planreport/planreport_test.go` | cases for `[~]`, the links, the new table                  |
+| `docs/plan-report.md`           | the new columns, the link rule, a gotcha, an experience    |
 
 What the code does now:
 

@@ -1,14 +1,14 @@
 # repo-tools
 
-The small programs the sheafdb repositories run on themselves: a Markdown
+The small programs a repository runs on itself: a Markdown
 table formatter and a prompt-history recorder for Claude Code. One
-binary, `repo-tools`, with seven subcommands. Four libraries. One
+binary, `repo-tools`, with eight subcommands. Four libraries. One
 dependency outside the Go standard library: `github.com/jpillora/opts`,
 which parses the command line.
 
-Nothing here is about sheafdb. A command reads the repository it is given
-and names no path above it, so any repository can install the flake and
-get the same hooks.
+Nothing here is about one consumer. A command reads the repository it is
+given and names no path above it, so any repository can install the flake
+and get the same hooks.
 
 | subcommand              | what it does                                                        |
 |-------------------------|---------------------------------------------------------------------|
@@ -19,6 +19,7 @@ get the same hooks.
 | `prompt-history-guard`  | the prek hook: keeps `.prompts/` in commits of its own              |
 | `notify`                | the Claude Code `Stop` hook: posts a one-line message to Slack      |
 | `tmux`                  | `new`, `attach` and `kill-session`; `<tab>` lists the sessions      |
+| `features`              | a feature branch's loop over the worktrees; `<tab>` lists each arg  |
 
 Run one as `repo-tools <subcommand>`. Each one has a page in
 [docs/](docs/).
@@ -88,7 +89,8 @@ prek install            # the git hooks, once per clone and per worktree
 ```
 
 Read [AGENTS.md](AGENTS.md) first. It holds the Go style, the Markdown
-style and the rule that keeps this repository separable from sheafdb.
+style and the rule that keeps this repository separable from its
+consumers.
 
 ### Work on a consumer and on the tools together
 
@@ -122,9 +124,8 @@ watches the Go sources. Use `go run . <subcommand>` here for the fast
 inner loop, and the override to check the thing the hooks will run.
 
 A consumer can wire the flag to an environment variable, so the switch
-is one file that `.gitignore` holds. `sheafdb` does, in `.envrc` and
-`.envrc.local.example`; its `docs/devtools/nix-custom-dev-tools.md`
-section 8 is the page.
+is one file that `.gitignore` holds, as an `.envrc` and an
+`.envrc.local.example` pair.
 
 #### The `go.work` route, and why it is not the one
 
@@ -138,18 +139,18 @@ It is `use` and not `replace`. A `replace` line on its own fails with
 this module: the tools arrive as binaries, not as a library.
 
 Two things make it the worse option. `go.work` is committed in some
-repositories, sheafdb among them, so the line dirties the worktree and
-breaks every clone that has no sibling checkout. And it does not reach
-the hooks, which name the command and get the pinned binary.
+repositories, so the line dirties the worktree and breaks every clone
+that has no sibling checkout. And it does not reach the hooks, which
+name the command and get the pinned binary.
 
 ## Why it is its own repository
 
 The tools are hooks. A hook runs on every commit of every repository that
 installs it, so it must version and release on its own schedule, not on
-the product's. Pulling them out of `sheafdb/tools/` also proved the claim
-they always made: they read the repository they are given, and name no
-path above it.
+the product's. Pulling them out of the product repository that first held
+them also proved the claim they always made: they read the repository
+they are given, and name no path above it.
 
-The cost is a pin. `sheafdb` now records a commit of this repository in
-its `flake.lock`, and a change here reaches `sheafdb` when someone runs
+The cost is a pin. A consumer records a commit of this repository in
+its `flake.lock`, and a change here reaches it when someone runs
 `nix flake update repo-tools` there.
